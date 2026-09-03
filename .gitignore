@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.Python
+build/
+dist/
+
+# Virtual env
+venv/
+.venv/
+env/
+
+# Env vars / secrets
+.env
+.env.*
+!.env.example
+
+# Alembic — keep versions/ tracked, ignore local db/state
+*.sqlite3
+*.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Coverage / test cache
+.coverage
+.pytest_cache/
+htmlcov/
