@@ -1,5 +1,5 @@
 """
-SIH26136 — SQLAlchemy models
+ProcureNext — SQLAlchemy models
 Source of truth: PRD v4 §16 (schema locked, 24 tables, 5 layers + cross-cutting).
 Implementation-level column choices follow Doc B (Layers 1-4) and Doc C (Layer 5)
 where they add detail the PRD left open — priority given to the tech-impl docs
@@ -458,6 +458,7 @@ class PilotMilestone(Base):
     id = Column(Integer, primary_key=True)
     contract_id = Column(Integer, ForeignKey("contracts.id"), nullable=False)
     milestone_type = Column(Enum(MilestoneTypeEnum), nullable=False)
+    display_name = Column(String, nullable=True)
     due_date = Column(Date, nullable=True)
     status = Column(Enum(MilestoneStatusEnum), nullable=False, default=MilestoneStatusEnum.pending)
     payment_status = Column(Enum(PaymentStatusEnum), nullable=False, default=PaymentStatusEnum.not_due)
