@@ -214,15 +214,18 @@ def submit_scores(
         metadata={"criterion_ids": sorted(requested_criterion_ids)},
     )
 
-    # SEAM: if this submission just made `application_id` Stage-3-complete,
-    # and every OTHER under_evaluation application in this PS is also
-    # complete, Doc B Stage 4 #1 says commercial_unlocked_at should be set
-    # on the ProblemStatement automatically, right now. qcbs_service.py
-    # (Stage 4) doesn't exist yet — do not silently skip re-checking this
-    # once it does. The natural call here would be something like:
-    #   qcbs_service.maybe_unlock_commercial_envelope(db, application.problem_statement_id)
-
     db.commit()
+
+    # Now that qcbs_service.py exists: check whether this submission just
+    # made every under_evaluation application in this PS Stage-3-complete,
+    # in which case commercial_unlocked_at should be set automatically
+    # (Doc B Stage 4 #1). Called post-commit, as its own follow-up
+    # transaction — it does its own completeness re-check + commit, so it
+    # doesn't need to share this function's transaction boundary.
+    from app.services import qcbs_service  # local import: avoids a circular
+    # import at module load time (qcbs_service imports scoring_service).
+    qcbs_service.maybe_unlock_commercial_envelope(db, application.problem_statement_id)
+
     for row in created_rows:
         db.refresh(row)
     return created_rows
