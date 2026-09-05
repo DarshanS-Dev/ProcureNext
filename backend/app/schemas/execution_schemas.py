@@ -7,6 +7,19 @@ Covers:
   Stage C — Pilot Milestone + Evidence
   Stage D — KPI Verdict
   Stage E — Pilot Outcome
+  Invite
+  ComplianceRecord
+
+SCOPE NOTE (Invite): `converted` on InviteWithConversionRead is not a
+stored column — computed live per Doc C Invite #2
+(EXISTS(Application WHERE ps_id=X AND startup_id=Y)). The service returns
+plain dicts with this shape, not ORM rows.
+
+SCOPE NOTE (ComplianceRecord): `snapshot` is a free-form compiled JSON
+blob (see compliance_record_service.generate_compliance_record for its
+shape) — typed as Dict[str, Any] rather than a nested model, since its
+structure spans data owned by four different layers and isn't itself an
+API contract in the same sense the rest of this file is.
 
 SCOPE NOTE (Stage D): KPICreate / KPIRead are NOT in this file. KPI
 *creation* is a Layer 2 gap-fix (Doc C Stage D #1; Doc D lists
@@ -29,7 +42,7 @@ FILE: app/schemas/execution_schemas.py
 """
 
 from datetime import date, datetime
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -231,3 +244,48 @@ class PilotOutcomeRead(BaseModel):
     rationale: Optional[str] = None
     decided_by: int
     decided_at: datetime
+
+
+# ============================================================
+# INVITE
+# ============================================================
+
+# ---- POST /problem-statements/{id}/invite ----
+class InviteCreate(BaseModel):
+    startup_id: int
+
+
+# ---- Response for GET /startup/invites and POST ----
+class InviteRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    problem_statement_id: int
+    startup_id: int
+    invited_at: datetime
+
+
+# ---- Response for GET /problem-statements/{id}/invites ----
+# `converted` computed live per Doc C Invite #2 — see module docstring.
+class InviteWithConversionRead(BaseModel):
+    id: int
+    problem_statement_id: int
+    startup_id: int
+    invited_at: datetime
+    converted: bool
+
+
+# ============================================================
+# COMPLIANCE RECORD
+# ============================================================
+
+# ---- Response for POST / GET (single + list) ----
+class ComplianceRecordRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    problem_statement_id: int
+    application_id: Optional[int] = None
+    generated_at: datetime
+    generated_by: int
+    snapshot: Dict[str, Any]
