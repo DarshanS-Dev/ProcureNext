@@ -5,6 +5,13 @@ Covers:
   Stage A — Sandbox Trial
   Stage B — Contract
   Stage C — Pilot Milestone + Evidence
+  Stage D — KPI Verdict
+
+SCOPE NOTE (Stage D): KPICreate / KPIRead are NOT in this file. KPI
+*creation* is a Layer 2 gap-fix (Doc C Stage D #1; Doc D lists
+POST/GET /problem-statements/{id}/kpis under "Problem Statements", not
+under KPI Verdicts) and belongs in Darshan's problem-statement schemas.
+Layer 5 only consumes KPI rows, via KPIVerdict.
 
 Follows the conventions locked in core_schemas.py (Darshan's file):
 - Enums imported directly from app.models — never redefined here.
@@ -33,6 +40,7 @@ from app.models import (
     MilestoneStatusEnum,
     PaymentStatusEnum,
     EvidenceSourceEnum,
+    KPIVerdictResultEnum,
 )
 
 
@@ -166,3 +174,33 @@ class EvidenceRead(BaseModel):
 class MilestoneReviewUpdate(BaseModel):
     status: MilestoneStatusEnum       # expected: accepted or rejected
     payment_status: PaymentStatusEnum
+
+
+# ============================================================
+# STAGE D — KPI VERDICT
+# ============================================================
+
+# ---- POST /contracts/{id}/kpi-verdicts ----
+# Independent evaluator submits one verdict per KPI per contract.
+# verified_by is NOT in the request body — set server-side from auth context.
+# contract_id comes from the path, not the body. kpi_id must reference a KPI
+# already created by Layer 2 against this contract's problem statement.
+class KPIVerdictCreate(BaseModel):
+    kpi_id: int
+    verdict: KPIVerdictResultEnum
+    verification_mode: VerificationModeEnum
+    justification: Optional[str] = None
+
+
+# ---- Response for GET / POST ----
+class KPIVerdictRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    kpi_id: int
+    contract_id: int
+    verdict: KPIVerdictResultEnum
+    verification_mode: VerificationModeEnum
+    verified_by: int
+    justification: Optional[str] = None
+    verified_at: datetime
