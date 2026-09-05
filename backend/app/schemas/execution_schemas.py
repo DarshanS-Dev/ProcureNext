@@ -1,5 +1,10 @@
 """
-Pydantic schemas — Sandbox Trial (Layer 5, Stage A) — Nikhil's ownership.
+Pydantic schemas — Layer 5 (Execution) — Nikhil's ownership.
+
+Covers:
+  Stage A — Sandbox Trial
+  Stage B — Contract
+  Stage C — Pilot Milestone + Evidence
 
 Follows the conventions locked in core_schemas.py (Darshan's file):
 - Enums imported directly from app.models — never redefined here.
@@ -12,10 +17,10 @@ Matches the real SandboxTrial model in models.py:
   no_red_flags_check, verdict, verified_by, verification_mode, notes,
   started_at, completed_at.  (No created_at on this table.)
 
-ADD THIS TO app/schemas/execution_schemas.py
+FILE: app/schemas/execution_schemas.py
 """
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
@@ -24,8 +29,16 @@ from app.models import (
     SandboxCheckEnum,
     SandboxVerdictEnum,
     VerificationModeEnum,
+    MilestoneTypeEnum,
+    MilestoneStatusEnum,
+    PaymentStatusEnum,
+    EvidenceSourceEnum,
 )
 
+
+# ============================================================
+# STAGE A — SANDBOX TRIAL
+# ============================================================
 
 # ---- POST /applications/{id}/sandbox-trial ----
 # Evaluator creates the trial and submits the four checks up front.
@@ -66,3 +79,90 @@ class SandboxTrialRead(BaseModel):
     notes: Optional[str] = None
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
+
+
+# ============================================================
+# STAGE B — CONTRACT
+# ============================================================
+
+# ---- POST /applications/{id}/contract ----
+# Officer creates the contract. clause_snapshot is built server-side
+# from ProblemStatement.category — not submitted by the client.
+# initiated_by is set server-side from auth context.
+class ContractCreate(BaseModel):
+    # No client-supplied fields needed — everything derived server-side.
+    # Body can be empty; kept as a schema for consistency + future fields.
+    pass
+
+
+# ---- Response for GET / POST ----
+class ContractRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    application_id: int
+    clause_snapshot: dict
+    initiated_by: int
+    signed_at: Optional[datetime] = None
+    created_at: datetime
+
+
+# ============================================================
+# STAGE C — PILOT MILESTONE + EVIDENCE
+# ============================================================
+
+# ---- Response for GET /contracts/{id}/milestones ----
+class PilotMilestoneRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    contract_id: int
+    milestone_type: MilestoneTypeEnum      # fixed, never officer-editable
+    display_name: Optional[str] = None     # cosmetic label, officer-editable (Doc C #3)
+    due_date: Optional[date] = None
+    status: MilestoneStatusEnum
+    payment_status: PaymentStatusEnum
+    target_value: Optional[str] = None
+    target_unit: Optional[str] = None
+    submitted_value: Optional[str] = None
+    completed_at: Optional[datetime] = None
+
+
+# ---- PATCH /contracts/{id}/milestones/{milestone_id} ----
+# Officer sets due_date, target_value, target_unit, display_name.
+# milestone_type, count of 5, and row order are NOT in this schema
+# and must never be accepted from the client (Doc C #1, #3).
+class PilotMilestoneUpdate(BaseModel):
+    due_date: Optional[date] = None
+    target_value: Optional[str] = None
+    target_unit: Optional[str] = None
+    display_name: Optional[str] = None    # cosmetic only — has zero effect on
+                                          # KPIVerdict, PilotOutcome gating,
+                                          # mark_application_completed, or
+                                          # ComplianceRecord keys (Doc C #3)
+
+
+# ---- POST /contracts/{id}/milestones/{milestone_id}/evidence ----
+# Startup submits evidence. source_tag forced to startup_submitted server-side.
+# file_reference is the uploaded file path/URL.
+class EvidenceCreate(BaseModel):
+    file_reference: str
+
+
+# ---- Response for Evidence ----
+class EvidenceRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    milestone_id: int
+    source_tag: EvidenceSourceEnum
+    file_reference: Optional[str] = None
+    submitted_at: datetime
+
+
+# ---- PATCH /contracts/{id}/milestones/{milestone_id}/review ----
+# Independent evaluator reviews submitted evidence.
+# Sets status (accepted/rejected) and payment_status.
+class MilestoneReviewUpdate(BaseModel):
+    status: MilestoneStatusEnum       # expected: accepted or rejected
+    payment_status: PaymentStatusEnum
