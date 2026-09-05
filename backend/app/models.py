@@ -329,6 +329,9 @@ class ChecklistItem(Base):
 class PSEvaluatorAssignment(Base):
     """Also used for COI-recusal manual replacement (Doc B Stage2 #6)."""
     __tablename__ = "ps_evaluator_assignments"
+    __table_args__ = (
+        UniqueConstraint("problem_statement_id", "evaluator_id", name="uq_ps_evaluator"),
+    )
 
     id = Column(Integer, primary_key=True)
     problem_statement_id = Column(Integer, ForeignKey("problem_statements.id"), nullable=False)
@@ -366,7 +369,12 @@ class EvaluationScore(Base):
 
 
 class COIDeclaration(Base):
+    """One per (application, evaluator) pair — insert-only, no resubmission allowed
+    (Q3 locked decision: mirrors scoring_service.py's existing insert-only pattern)."""
     __tablename__ = "coi_declarations"
+    __table_args__ = (
+        UniqueConstraint("application_id", "evaluator_id", name="uq_coi_app_eval"),
+    )
 
     id = Column(Integer, primary_key=True)
     application_id = Column(Integer, ForeignKey("applications.id"), nullable=False)

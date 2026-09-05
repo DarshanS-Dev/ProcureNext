@@ -81,8 +81,8 @@ def submit_scores(
     db: Session = Depends(get_db),
 ):
     """POST /applications/{id}/scores — evaluator-assigned, non-recused.
-    Assignment itself not yet enforced here (judgment call #1) — COI gate
-    inside the service is the real blocking check for MVP."""
+    Q4 gate (evaluator_service.py integration) now enforced: evaluator must be
+    assigned to the application's PS (403 if not)."""
     _get_application_or_404(db, application_id)
 
     try:
@@ -92,6 +92,8 @@ def submit_scores(
             evaluator_id=current_user.id,
             scores=[entry.model_dump() for entry in payload.scores],
         )
+    except scoring_service.EvaluatorNotAssignedError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
     except scoring_service.COIGateBlockedError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
     except scoring_service.UnknownCriterionError as exc:
@@ -100,7 +102,6 @@ def submit_scores(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
     except scoring_service.ApplicationNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
-
 
 @router.get("/applications/{application_id}/scores", response_model=list[EvaluationScoreRead])
 def get_scores(
