@@ -6,6 +6,7 @@ Covers:
   Stage B — Contract
   Stage C — Pilot Milestone + Evidence
   Stage D — KPI Verdict
+  Stage E — Pilot Outcome
 
 SCOPE NOTE (Stage D): KPICreate / KPIRead are NOT in this file. KPI
 *creation* is a Layer 2 gap-fix (Doc C Stage D #1; Doc D lists
@@ -41,6 +42,7 @@ from app.models import (
     PaymentStatusEnum,
     EvidenceSourceEnum,
     KPIVerdictResultEnum,
+    PilotOutcomeResultEnum,
 )
 
 
@@ -204,3 +206,28 @@ class KPIVerdictRead(BaseModel):
     verified_by: int
     justification: Optional[str] = None
     verified_at: datetime
+
+
+# ============================================================
+# STAGE E — PILOT OUTCOME
+# ============================================================
+
+# ---- POST /contracts/{id}/pilot-outcome ----
+# Officer decides scale/iterate/stop with rationale (Doc C Stage E #2) —
+# a human decision, not system-computed. decided_by is set server-side from
+# auth context, not the request body.
+class PilotOutcomeCreate(BaseModel):
+    overall_result: PilotOutcomeResultEnum
+    rationale: Optional[str] = None
+
+
+# ---- Response for GET / POST ----
+class PilotOutcomeRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    contract_id: int
+    overall_result: PilotOutcomeResultEnum
+    rationale: Optional[str] = None
+    decided_by: int
+    decided_at: datetime
