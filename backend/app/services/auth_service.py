@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models import RoleEnum, StartupProfile, User
+from app.services import audit_log_service
 
 ACCESS_TOKEN_EXPIRE_SECONDS = 24 * 60 * 60  # 24h, no refresh token (Doc B Layer 1 #6)
 
@@ -88,6 +89,19 @@ def register_startup(db: Session, email: str, password: str, name: str) -> User:
     profile = StartupProfile(user_id=user.id)
     db.add(profile)
 
+    # GAP FIX: this call was missing when auth_service.py was first written
+    # (audit_log_service.py didn't exist yet). Added now to match the
+    # project-wide "every mutating service function logs to AuditLog"
+    # convention. actor_id=user.id since self-registration has no other
+    # actor to attribute it to.
+    audit_log_service.write_audit_log(
+        db,
+        actor_id=user.id,
+        action="user_registered",
+        entity_type="User",
+        entity_id=user.id,
+    )
+
     db.commit()
     db.refresh(user)
     return user
@@ -116,6 +130,19 @@ def create_user_by_admin(
         role=role,
     )
     db.add(user)
+    db.flush()  # populate user.id before logging
+
+    # GAP FIX: see register_startup's identical note above. actor_id is the
+    # admin who created this account (Doc B Layer 1 #1 / PRD §03 carve-out a).
+    audit_log_service.write_audit_log(
+        db,
+        actor_id=created_by_admin_id,
+        action="user_created_by_admin",
+        entity_type="User",
+        entity_id=user.id,
+        metadata={"role": role.value},
+    )
+
     db.commit()
     db.refresh(user)
     return user
