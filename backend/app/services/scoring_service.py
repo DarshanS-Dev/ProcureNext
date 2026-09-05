@@ -100,6 +100,10 @@ class DuplicateScoreError(ScoringServiceError):
     """Raised when the evaluator has already scored this criterion for this
     application — resubmission/revision is not supported (see judgment call #2)."""
 
+class EvaluatorNotAssignedError(ScoringServiceError):
+    """Raised when the evaluator is not assigned to the application's PS
+    (Q4 locked gate from evaluator_service.py)."""
+
 
 # ============================================================
 # Rubric reads
@@ -135,19 +139,33 @@ def submit_scores(
 
     Gates enforced, in order:
       1. Application must exist.
-      2. COI gate (Doc B Stage 2 #4): evaluator must have a
-         COIDeclaration row for this application with recused=False.
-         No declaration at all, or declared_conflict/recused=True, both
-         block scoring.
-      3. Every criterion_id in the batch must reference a real
-         RubricCriterion row.
-      4. No criterion_id in the batch may already have an EvaluationScore
-         row for this (application_id, evaluator_id) pair — insert-only,
-         no revision (judgment call #2).
+      2. Q4 locked gate (evaluator_service.py integration): evaluator must be
+         assigned to this application's PS.
+      3. COI gate (Doc B Stage 2 #4): evaluator must have a COIDeclaration row
+         for this application with recused=False. No declaration at all, or
+         declared_conflict/recused=True, both block scoring.
+      4. Every criterion_id in the batch must reference a real RubricCriterion row.
+      5. No criterion_id in the batch may already have an EvaluationScore row for
+         this (application_id, evaluator_id) pair — insert-only, no revision (judgment call #2).
     """
     application = db.query(Application).filter(Application.id == application_id).first()
     if application is None:
         raise ApplicationNotFoundError(f"Application {application_id} not found")
+
+    # Q4 locked gate (evaluator_service.py integration): evaluator must be assigned to
+    # this application's PS to score.
+    assignment = (
+        db.query(PSEvaluatorAssignment)
+        .filter(
+            PSEvaluatorAssignment.problem_statement_id == application.problem_statement_id,
+            PSEvaluatorAssignment.evaluator_id == evaluator_id,
+        )
+        .first()
+    )
+    if assignment is None:
+        raise EvaluatorNotAssignedError(
+            f"Evaluator {evaluator_id} is not assigned to ProblemStatement {application.problem_statement_id}"
+        )
 
     coi = (
         db.query(COIDeclaration)
