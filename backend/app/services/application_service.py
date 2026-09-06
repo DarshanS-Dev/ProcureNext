@@ -77,7 +77,7 @@ from app.models import (
     PSStatusEnum,
     StartupProfile,
 )
-from app.services import audit_log_service, checklist_service
+from app.services import audit_log_service, checklist_service, risk_containment_service
 
 
 # ============================================================
@@ -324,8 +324,6 @@ def update_eligibility_check(
     else:
         eligibility_check.overall_result = OverallEligibilityEnum.eligible
         application.status = ApplicationStatusEnum.under_evaluation
-        # SEAM: trigger preliminary RiskProfile computation here once
-        # risk_containment_service.py exists (Doc B Stage 5 #1).
 
     audit_log_service.write_audit_log(
         db,
@@ -338,6 +336,15 @@ def update_eligibility_check(
 
     db.commit()
     db.refresh(eligibility_check)
+
+    # SEAM RESOLVED (Doc B Stage 5 #1): now that risk_containment_service.py
+    # exists, fire preliminary RiskProfile computation the moment eligibility
+    # flips to `eligible`. Called post-commit as its own transaction — it does
+    # its own commit, so it doesn't need to share this function's transaction
+    # boundary (same pattern as scoring_service's post-commit QCBS-unlock call).
+    if eligibility_check.overall_result == OverallEligibilityEnum.eligible:
+        risk_containment_service.compute_preliminary_risk_profile(db, application_id)
+
     return eligibility_check
 
 
