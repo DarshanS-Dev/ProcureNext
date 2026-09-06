@@ -133,6 +133,8 @@ export default function ComplianceRecordPage() {
             { label: 'Applications', href: '/admin/applications' },
             { label: `#${appId}` },
           ]}
+        />
+
         <DecisionReadinessPanel appId={appId} canViewCOI={true} />
 
         <DataCard>
