@@ -1,12 +1,21 @@
+# --- Web framework ---
 fastapi
 uvicorn[standard]
+
+# --- Database ---
 sqlalchemy
 alembic
-psycopg2-binary
+psycopg2-binary          # Postgres driver — swap if a different DB is used
+
+# --- Settings / config ---
 pydantic
 pydantic-settings
-python-jose[cryptography]
-passlib[bcrypt]
-python-multipart
 python-dotenv
+
+# --- Auth ---
+bcrypt                    # direct bcrypt, NOT passlib (passlib unmaintained, no bcrypt 4.x support)
 pyjwt
+
+# --- Semantic Matching (Teammate B handoff — app/matching.py) ---
+chromadb
+sentence-transformers
