@@ -46,12 +46,9 @@ export default function StartupInvitesPage() {
 
         {invitesQuery.loading && <LoadingBlock label="Loading invites…" />}
 
-        {invitesQuery.error &&
-          (invitesQuery.error.isNotFound ? (
-            <UnmountedRouterNotice router="invite" feature="Direct invites" />
-          ) : (
-            <ApiErrorState error={invitesQuery.error} onRetry={invitesQuery.refetch} />
-          ))}
+        {invitesQuery.error && (
+          <ApiErrorState error={invitesQuery.error} onRetry={invitesQuery.refetch} />
+        )}
 
         {invitesQuery.data && invitesQuery.data.length === 0 && (
           <EmptyState

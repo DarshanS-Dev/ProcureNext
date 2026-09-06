@@ -147,6 +147,7 @@ function OfficerApplicationDetail({ appId }: { appId: number }) {
           <DecisionReadinessPanel
             appId={appId}
             canSelect={isOwner}
+            canViewCOI={true}
             onSelected={() => appQuery.refetch()}
           />
         )}
