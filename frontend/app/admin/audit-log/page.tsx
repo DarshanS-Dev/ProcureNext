@@ -1,22 +1,12 @@
 'use client';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/shared/AppLayout';
+import { api } from '@/lib/api/client';
 import {
   PageHeader, DataCard, StatusBadge, StickyNote, DocLinkButton, DocRow, SectionDivider
 } from '@/components/shared/DesignSystem';
 import { ScrollText, Clock, Landmark, Scale, FlaskConical, Rocket, ShieldCheck as AdminIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
-
-const auditLogs = [
-  { id: 1, action: 'COMPLIANCE_RECORD_GENERATED', timestamp: '2024-09-06 09:12:00', actor: 'admin', actorName: 'Platform Admin', details: 'Generated immutable compliance snapshot #CR-9081' },
-  { id: 2, action: 'PILOT_OUTCOME_RECORDED',      timestamp: '2024-09-06 08:50:00', actor: 'officer', actorName: 'Vikram Malhotra', details: 'Decision: SCALE based on 100% KPI verdict pass' },
-  { id: 3, action: 'KPI_VERDICTS_SUBMITTED',       timestamp: '2024-09-06 08:42:00', actor: 'independent-evaluator', actorName: 'K. Verma', details: 'Flight patrol range: 48km (Target: 30km)' },
-  { id: 4, action: 'SANDBOX_VERDICT_PROMISING',    timestamp: '2024-09-06 08:15:00', actor: 'independent-evaluator', actorName: 'K. Verma', details: 'Passed 4/4 verification checks' },
-  { id: 5, action: 'STARTUP_SELECTED_FOR_PILOT',   timestamp: '2024-09-06 07:30:00', actor: 'officer', actorName: 'Vikram Malhotra', details: 'Passed 6-point Decision Readiness gate' },
-  { id: 6, action: 'RUBRIC_SCORE_RECORDED',        timestamp: '2024-09-06 07:10:00', actor: 'evaluator', actorName: 'Dr. Ananya Roy', details: 'Technical score: 84/100 after COI clearance' },
-  { id: 7, action: 'STARTUP_COMPLIANCE_VERIFIED',  timestamp: '2024-09-06 06:45:00', actor: 'admin', actorName: 'Platform Admin', details: 'Single-pass verification completed for AeroTech Labs' },
-  { id: 8, action: 'STARTUP_REGISTERED',           timestamp: '2024-09-06 06:30:00', actor: 'startup', actorName: 'Aarav Sharma', details: 'Self-registered startup account' },
-];
 
 const ACTOR_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   admin:                  { bg: '#FBEAEC', text: '#C81E4A', border: '#F3BECA' },
@@ -27,6 +17,22 @@ const ACTOR_COLORS: Record<string, { bg: string; text: string; border: string }>
 };
 
 export default function AdminAuditLogPage() {
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+
+  useEffect(() => {
+    api.getAuditLogs().then((res) => {
+      if (Array.isArray(res)) {
+        setAuditLogs(res.map(l => ({
+          id: l.id,
+          action: l.action,
+          timestamp: l.timestamp ? new Date(l.timestamp).toISOString().replace('T', ' ').substring(0, 19) : '',
+          actor: l.actor_role || 'admin',
+          actorName: l.actor_name || `User #${l.actor_id}`,
+          details: l.details || `Entity: ${l.entity_type} #${l.entity_id}`,
+        })));
+      }
+    }).catch(() => {});
+  }, []);
   return (
     <AppLayout defaultRole="admin">
       <div className="space-y-6">

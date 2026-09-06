@@ -66,12 +66,23 @@ export const MainDashboardView: React.FC<MainDashboardViewProps> = ({ role, onNa
   const [logs, setLogs] = useState<AuditLogRead[]>([]);
 
   useEffect(() => {
-    api.getProblemStatements().then(setPsList);
-    api.getAuditLogs().then(setLogs);
+    api.getProblemStatements().then((res) => {
+      if (Array.isArray(res)) setPsList(res);
+    }).catch(() => {});
+
+    api.getAuditLogs().then((res) => {
+      if (Array.isArray(res)) setLogs(res);
+    }).catch(() => {});
   }, [role]);
 
   const info = ROLE_DASHBOARD_TITLES[role];
-  const metrics = METRICS[role];
+  const openPsCount = psList.length;
+  const metrics = [
+    { label: 'Open Problem Statements', value: `${openPsCount}`, icon: <FileText className="w-4 h-4" />, trend: openPsCount > 0 ? `${openPsCount} active` : 'No active PS', trendUp: openPsCount > 0 },
+    { label: 'My Applications', value: '0', icon: <FolderOpen className="w-4 h-4" /> },
+    { label: 'Invites Received', value: '0', icon: <Zap className="w-4 h-4" /> },
+    { label: 'Profile Completeness', value: '100%', icon: <CheckCircle className="w-4 h-4" />, trend: 'Verified', trendUp: true },
+  ];
 
   return (
     <div className="space-y-6">

@@ -8,9 +8,7 @@ import { UserRole } from '@/lib/types/api';
 import { ShieldCheck, Plus, FileText } from 'lucide-react';
 
 export default function AdminComplianceRecordPage() {
-  const [records, setRecords] = useState([
-    { id: 'CR-9081', timestamp: '2024-09-06 09:12:00', scope: 'Single Application #1', status: 'Immutable Snapshot' }
-  ]);
+  const [records, setRecords] = useState<any[]>([]);
 
   const handleGenerateRecord = () => {
     const newRecord = {

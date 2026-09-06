@@ -1,7 +1,8 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/shared/AppLayout';
 import { UserRole } from '@/lib/types/api';
+import { api } from '@/lib/api/client';
 import {
   PageHeader, DocumentForm, FormField, DocInput, DocSelect, DocButton,
   DataCard, StatusBadge, StickyNote, AlertStrip, DocRow, SectionDivider
@@ -16,11 +17,15 @@ const ROLE_COLORS: Record<string, string> = {
 };
 
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState([
-    { id: 1, name: 'Vikram Malhotra', email: 'officer@setu.gov.in', role: 'officer', status: 'Active' },
-    { id: 2, name: 'Dr. Ananya Roy', email: 'evaluator@setu.gov.in', role: 'evaluator', status: 'Active' },
-    { id: 3, name: 'Sandbox Lead K. Verma', email: 'ie@setu.gov.in', role: 'independent-evaluator', status: 'Active' },
-  ]);
+  const [users, setUsers] = useState<any[]>([]);
+
+  useEffect(() => {
+    api.getUsers().then((res) => {
+      if (Array.isArray(res)) {
+        setUsers(res.map(u => ({ id: u.id, name: u.full_name || u.email, email: u.email, role: u.role, status: u.is_active ? 'Active' : 'Inactive' })));
+      }
+    }).catch(() => {});
+  }, []);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');

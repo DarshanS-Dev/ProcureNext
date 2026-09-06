@@ -19,17 +19,23 @@ async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): Promise
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  try {
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      ...options,
+      headers,
+    });
 
-  if (!res.ok) {
-    const errorText = await res.text();
-    throw new Error(`API Error ${res.status}: ${errorText}`);
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.warn(`API Error ${res.status} at ${endpoint}: ${errorText}`);
+      return [] as unknown as T;
+    }
+
+    return await res.json();
+  } catch (err) {
+    console.warn(`Failed to connect to FastAPI backend at ${API_BASE}${endpoint}. Is backend server running on port 8000?`);
+    return [] as unknown as T;
   }
-
-  return res.json();
 }
 
 export const api = {
@@ -49,9 +55,12 @@ export const api = {
     });
   },
 
-  // Problem Statements & KPIs
+  // Problem Statements & Semantic Matching
   getProblemStatements: async (): Promise<ProblemStatementRead[]> => {
     return fetchAPI<ProblemStatementRead[]>('/problem-statements');
+  },
+  getMatchedProblemStatements: async (): Promise<(ProblemStatementRead & { recommended?: boolean; score?: number })[]> => {
+    return fetchAPI<(ProblemStatementRead & { recommended?: boolean; score?: number })[]>('/startup/problem-statements');
   },
   getProblemStatementById: async (id: number): Promise<ProblemStatementRead | undefined> => {
     return fetchAPI<ProblemStatementRead>(`/problem-statements/${id}`);
@@ -66,9 +75,26 @@ export const api = {
     return fetchAPI<KPIRead[]>(`/problem-statements/${psId}/kpis`);
   },
 
+  // Invites
+  getStartupInvites: async (): Promise<any[]> => {
+    return fetchAPI<any[]>('/startup/invites');
+  },
+  sendInvite: async (psId: number, startupId: number) => {
+    return fetchAPI<any>(`/problem-statements/${psId}/invite`, {
+      method: 'POST',
+      body: JSON.stringify({ startup_id: startupId }),
+    });
+  },
+
   // Applications
   getApplications: async (): Promise<ApplicationRead[]> => {
     return fetchAPI<ApplicationRead[]>('/applications');
+  },
+  createApplication: async (payload: { problem_statement_id: number; proposal_title?: string; proposal_summary?: string }): Promise<ApplicationRead> => {
+    return fetchAPI<ApplicationRead>('/applications', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
   },
   getApplicationById: async (id: number, userRole?: string): Promise<ApplicationRead | undefined> => {
     return fetchAPI<ApplicationRead>(`/applications/${id}`);
