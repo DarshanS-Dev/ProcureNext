@@ -1,0 +1,46 @@
+export const COPY = {
+  common: {
+    appName: "SETU",
+    appSubTitle: "Startup Procurement & Innovation Platform",
+    currentCycle: "CURRENT CYCLE: 2024 Q3 (July 1 – Sept 30)",
+    loading: "Loading data...",
+    save: "Save changes",
+    cancel: "Cancel",
+    confirm: "Confirm action",
+    status: "Status",
+    back: "Back to list",
+  },
+  roles: {
+    startup: "Startup",
+    officer: "Nodal Officer",
+    evaluator: "Evaluator",
+    "independent-evaluator": "Independent Evaluator",
+    admin: "Platform Admin",
+  },
+  actions: {
+    submitApplication: "Submit application",
+    selectStartup: "Select startup for pilot",
+    submitScores: "Submit scores",
+    recordVerdict: "Record KPI verdict",
+    assignEvaluator: "Assign evaluator",
+    replaceEvaluator: "Replace evaluator (COI)",
+    verifyCompliance: "Verify compliance",
+    generateRecord: "Generate compliance record",
+    publishPS: "Publish problem statement",
+  },
+  notices: {
+    advisoryPS: "This reads more like a technology spec than an outcome. You can publish either way.",
+    fundingPrivacy: "Funding details are restricted to risk profile evaluation only.",
+    noApplications: "No applications yet — startups can apply once this problem statement is published.",
+    lockedField: "That field is locked because an application already exists for this problem statement.",
+  },
+  statusLabels: {
+    applied: "Applied",
+    under_review: "Under Review",
+    under_evaluation: "Under Evaluation",
+    selected: "Selected",
+    contracted: "Contracted",
+    completed: "Completed",
+    not_selected: "Not Selected",
+  }
+};

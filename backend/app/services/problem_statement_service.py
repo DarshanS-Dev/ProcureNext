@@ -12,6 +12,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.models import Application, KPI, ProblemStatement, PSStatusEnum
+from app.services import matching_service
 from app.services.audit_log_service import write_audit_log
 
 # Fields frozen post-publish once ≥1 Application exists (Doc B Layer 2 #6, PRD §4.3):
@@ -108,6 +109,17 @@ def update_problem_statement(
         entity_type="ProblemStatement", entity_id=ps.id,
         metadata={"old_values": old_values, "new_values": updates},
     )
+
+    # SEMANTIC MATCHING: re-index only if (a) this PS has already been
+    # published (draft PSs aren't indexed at all — see publish_problem_statement)
+    # AND (b) `description` was actually part of this update — re-embedding
+    # on every unrelated field edit (e.g. budget_range) would be wasted work.
+    # `description` is not in LOCKED_FIELDS, so it stays editable post-publish
+    # regardless of Application count, which is exactly the case this
+    # re-index needs to handle. Best-effort, never raises.
+    if ps.status == PSStatusEnum.published and "description" in updates:
+        matching_service.store_problem_statement_description(ps.id, ps.description)
+
     return ps
 
 
@@ -147,6 +159,19 @@ def publish_problem_statement(db: Session, ps_id: int, officer_id: int) -> Probl
         db, actor_id=officer_id, action="ps_published",
         entity_type="ProblemStatement", entity_id=ps.id,
     )
+
+    # SEMANTIC MATCHING (Teammate B handoff): index the PS description at
+    # publish time, not at draft creation. Judgment call: a draft PS is not
+    # discoverable/matchable to anyone yet (Doc B framing — publish is the
+    # "goes live" moment), so indexing it earlier would let a startup's
+    # match query surface a PS that isn't actually open for applications.
+    # Publish is also the point this session's brainstorm anchors "run the
+    # ranking" to — indexing here means GET /problem-statements/{id}/matches
+    # is queryable by officers the instant publish succeeds. Best-effort,
+    # never raises (see matching_service judgment call #2) — a Chroma
+    # hiccup must never block a publish from succeeding.
+    matching_service.store_problem_statement_description(ps.id, ps.description)
+
     return ps
 
 
@@ -177,7 +202,10 @@ def close_problem_statement(db: Session, ps_id: int, officer_id: int) -> Problem
 # AI-Assist (advisory only — never writes, never blocks)
 # ============================================================
 
-def ai_assist_draft(rough_text: str) -> dict:
+from app.services.ps_ai_draft import ai_assist_draft as _teammate_ai_assist_draft
+
+
+async def ai_assist_draft(rough_text: str) -> dict:
     """POST /problem-statements/{id}/ai-assist — officer-owner, advisory only.
 
     Suggests: a candidate baseline question, a plausible measurement method,
@@ -186,11 +214,20 @@ def ai_assist_draft(rough_text: str) -> dict:
     gates publish (PRD §4.2.1) — officer reviews/edits/approves every field
     themselves before it's saved via update_problem_statement().
 
-    Actual LLM call/prompt construction is not modeled here — this function is
-    the seam where that call happens; return shape matches
-    ProblemStatementAiAssistResponse.
+    WIRED (this session): delegates to Teammate B's ps_ai_draft.ai_assist_draft(),
+    a direct async LLM call (Groq-hosted). Made async here because that
+    dependency is a real network call, not a stub — this function is now
+    genuinely async where it was previously an unimplemented sync seam (`...`).
+    That ripples up to the router (problem_statements.py's /ai-assist endpoint
+    is now `async def` too — see that file).
+
+    Teammate's function never raises (catches its own exceptions internally
+    and returns safe null defaults), so no try/except is added here — nothing
+    in this function needs to translate an error to HTTP.
+
+    Return shape matches ProblemStatementAiAssistResponse exactly, unchanged.
     """
-    ...
+    return await _teammate_ai_assist_draft(rough_text)
 
 
 # ============================================================

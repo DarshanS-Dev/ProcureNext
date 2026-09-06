@@ -1,0 +1,116 @@
+'use client';
+
+/**
+ * GET /applications?startup_id={me} — the route requires exactly one filter,
+ * and a startup may only pass its own id, which comes from the JWT.
+ */
+
+import React from 'react';
+import { AppLayout } from '@/components/shared/AppLayout';
+import {
+  DocLinkButton,
+  DocumentForm,
+  PageHeader,
+  StatusBadge,
+} from '@/components/shared/DesignSystem';
+import { ApiErrorState, EmptyState, LoadingBlock, fmtDateTime, humanize } from '@/components/shared/States';
+import { api } from '@/lib/api/client';
+import { useQuery } from '@/lib/hooks/useApi';
+import { useSession } from '@/lib/auth/session';
+import { ArrowRight } from 'lucide-react';
+
+export default function StartupApplicationsPage() {
+  const session = useSession();
+
+  const appsQuery = useQuery(
+    () => api.getApplicationsForStartup(session!.userId),
+    [session?.userId],
+    { enabled: Boolean(session) },
+  );
+  const psQuery = useQuery(() => api.getProblemStatements(), []);
+
+  const psById = new Map((psQuery.data ?? []).map((ps) => [ps.id, ps]));
+
+  return (
+    <AppLayout allow="startup">
+      <div className="space-y-6 max-w-5xl">
+        <PageHeader
+          title="My Applications"
+          subtitle="Every proposal you have submitted, and where each one sits in the pipeline."
+          phase="Layer 3 · Application"
+          role="startup"
+          breadcrumb={[{ label: 'Startup', href: '/startup/dashboard' }, { label: 'Applications' }]}
+          actions={
+            <DocLinkButton href="/startup/discover" role="startup" size="sm">
+              Find something to apply to
+            </DocLinkButton>
+          }
+        />
+
+        {(appsQuery.loading || !session) && <LoadingBlock label="Loading applications…" />}
+        {appsQuery.error && <ApiErrorState error={appsQuery.error} onRetry={appsQuery.refetch} />}
+
+        {appsQuery.data && appsQuery.data.length === 0 && (
+          <EmptyState
+            title="No applications yet"
+            hint="Applying needs a complete Level 2 profile and admin-verified compliance. Check your profile first, then browse open problem statements."
+            action={
+              <DocLinkButton href="/startup/profile" role="startup" size="sm">
+                Open my profile
+              </DocLinkButton>
+            }
+          />
+        )}
+
+        {appsQuery.data && appsQuery.data.length > 0 && (
+          <DocumentForm
+            title="Submitted Proposals"
+            subtitle="GET /applications?startup_id="
+            refNumber="APP-REG"
+            role="startup"
+          >
+            <div className="pt-2 divide-y divide-[#EDE7DB]">
+              {appsQuery.data.map((app) => {
+                const ps = psById.get(app.problem_statement_id);
+                const title =
+                  (app.technical_proposal?.title as string | undefined) ||
+                  ps?.title ||
+                  `Application #${app.id}`;
+
+                return (
+                  <div
+                    key={app.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-4"
+                  >
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <StatusBadge status={app.status} />
+                        <span className="font-mono text-[11px] text-[#A89F94]">
+                          APP #{app.id} · PS #{app.problem_statement_id}
+                        </span>
+                      </div>
+                      <div className="font-bold text-sm text-[#1A1A1A] truncate">{title}</div>
+                      <div className="text-[11px] text-[#6B6560]">
+                        {ps ? `${humanize(ps.category)} · ` : ''}
+                        Submitted {fmtDateTime(app.created_at)}
+                      </div>
+                    </div>
+
+                    <DocLinkButton
+                      href={`/startup/applications/${app.id}`}
+                      role="startup"
+                      size="sm"
+                      icon={<ArrowRight className="w-3.5 h-3.5" />}
+                    >
+                      Open
+                    </DocLinkButton>
+                  </div>
+                );
+              })}
+            </div>
+          </DocumentForm>
+        )}
+      </div>
+    </AppLayout>
+  );
+}
