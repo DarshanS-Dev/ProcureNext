@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"  # development / production
     DEBUG: bool = True
 
+    GROQ_API_KEY: str
+
 
 @lru_cache
 def get_settings() -> Settings:

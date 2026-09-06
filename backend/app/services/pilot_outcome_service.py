@@ -22,7 +22,7 @@ from app.models import (
     PilotOutcomeResultEnum,
 )
 from app.services.kpi_service import all_kpi_verdicts_present
-from app.services.application_transitions import mark_application_completed
+from app.services.application_service import mark_application_completed
 # NOTE: same shape as mark_application_not_selected (Doc A §3) — no db/session
 # argument, described as an internal same-codebase call that manages its own
 # transaction. Confirmed against sandbox_service.py's existing usage.
