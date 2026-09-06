@@ -58,6 +58,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.models import DpiitStatusEnum, StartupProfile, User
+from app.services import matching_service
 from app.services.audit_log_service import write_audit_log
 
 
@@ -192,6 +193,15 @@ def update_level2(db: Session, user_id: int, updates: dict) -> StartupProfile:
 
     db.commit()
     db.refresh(profile)
+
+    # SEMANTIC MATCHING (Teammate B handoff): re-index only if `description`
+    # was actually part of this update — unlike ProblemStatement (which gates
+    # indexing on publish), StartupProfile has no publish-style gate, so it's
+    # indexed as soon as the startup provides it (no-op if still blank —
+    # see matching_service judgment call #1). Best-effort, never raises.
+    if "description" in applied:
+        matching_service.store_startup_description(profile.user_id, profile.description)
+
     return profile
 
 
