@@ -1,20 +1,32 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/shared/AppLayout';
+import { api } from '@/lib/api/client';
 import {
   PageHeader, DocumentForm, DataCard, StatusBadge, StickyNote, DocButton, DocRow
 } from '@/components/shared/DesignSystem';
 import { UserRole } from '@/lib/types/api';
 import { CheckCircle2, ShieldCheck, FileCheck } from 'lucide-react';
+import { useParams } from 'next/navigation';
 
 export default function IndependentMilestonesPage() {
-  const [milestones, setMilestones] = useState([
-    { id: 1, title: 'M1: Hardware Bench Assembly & Telemetry Test', status: 'submitted', review: 'accepted', payment: 'released' },
-    { id: 2, title: 'M2: Edge Vision AI Model Calibration', status: 'submitted', review: 'accepted', payment: 'released' },
-    { id: 3, title: 'M3: Night Patrol Thermal Flight Trials', status: 'submitted', review: 'pending', payment: 'held' },
-    { id: 4, title: 'M4: Integrated Security Protocol Signoff', status: 'pending', review: 'pending', payment: 'held' },
-    { id: 5, title: 'M5: Final Pilot Outcome Audit & Handoff', status: 'pending', review: 'pending', payment: 'held' },
-  ]);
+  const params = useParams();
+  const contractId = Number(params?.id || 1);
+  const [milestones, setMilestones] = useState<any[]>([]);
+
+  useEffect(() => {
+    api.getMilestones(contractId).then((res) => {
+      if (Array.isArray(res)) {
+        setMilestones(res.map(m => ({
+          id: m.id,
+          title: m.title || `Milestone #${m.id}`,
+          status: m.status || 'pending',
+          review: m.review_status || 'pending',
+          payment: m.payment_status || 'held',
+        })));
+      }
+    }).catch(() => {});
+  }, [contractId]);
 
   const handleAcceptMilestone = (id: number) => {
     setMilestones(milestones.map(m => m.id === id ? { ...m, review: 'accepted', payment: 'released' } : m));

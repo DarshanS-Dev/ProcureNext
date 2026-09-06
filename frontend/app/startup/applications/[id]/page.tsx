@@ -1,21 +1,33 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/shared/AppLayout';
 import { PipelineStepper } from '@/components/shared/PipelineStepper';
 import {
   PageHeader, DocumentForm, DataCard, StatusBadge, StickyNote, DocButton, DocRow
 } from '@/components/shared/DesignSystem';
 import { UserRole } from '@/lib/types/api';
+import { api } from '@/lib/api/client';
 import { Upload, CheckCircle2, FileText } from 'lucide-react';
+import { useParams } from 'next/navigation';
 
 export default function ApplicationCasefilePage() {
+  const params = useParams();
+  const appId = Number(params?.id || 1);
   const [activeTab, setActiveTab] = useState<'checklist' | 'milestones'>('checklist');
-  const [checklist, setChecklist] = useState([
-    { id: 1, title: 'DPIIT Registration Certificate', status: 'uploaded', file: 'dpiit_cert_2024.pdf' },
-    { id: 2, title: 'PAN & GST Compliance Declaration', status: 'uploaded', file: 'gst_return_q2.pdf' },
-    { id: 3, title: 'Technical Feasibility Architecture Spec', status: 'pending', file: null },
-    { id: 4, title: 'Security Sensitivity Declaration (Form 4B)', status: 'pending', file: null },
-  ]);
+  const [checklist, setChecklist] = useState<any[]>([]);
+
+  useEffect(() => {
+    api.getChecklist(appId).then((res) => {
+      if (Array.isArray(res)) {
+        setChecklist(res.map(c => ({
+          id: c.id,
+          title: c.title || `Checklist Item #${c.id}`,
+          status: c.status || 'pending',
+          file: c.file_url || null,
+        })));
+      }
+    }).catch(() => {});
+  }, [appId]);
 
   const handleUpload = (id: number) => {
     setChecklist(checklist.map(item => item.id === id ? { ...item, status: 'uploaded', file: `doc_upload_${id}.pdf` } : item));

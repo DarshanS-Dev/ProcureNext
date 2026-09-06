@@ -8,10 +8,7 @@ import { UserRole } from '@/lib/types/api';
 import { ShieldCheck, CheckCircle2, Lock, ShieldAlert } from 'lucide-react';
 
 export default function AdminCompliancePage() {
-  const [queue, setQueue] = useState([
-    { id: 1, name: 'AeroTech Defense Labs Pvt Ltd', dpiit: 'DPIIT-98234-IN', panGst: '✓ PAN & GST Present', entityValid: '✓ Entity Active', status: 'unverified' },
-    { id: 2, name: 'CyberShield Systems Pvt Ltd', dpiit: 'DPIIT-44102-IN', panGst: '✓ PAN & GST Present', entityValid: '✓ Entity Active', status: 'unverified' }
-  ]);
+  const [queue, setQueue] = useState<any[]>([]);
 
   const [verifiedList, setVerifiedList] = useState<string[]>([]);
   const [ruleMessage, setRuleMessage] = useState<string | null>(null);
