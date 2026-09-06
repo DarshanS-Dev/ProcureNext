@@ -73,7 +73,7 @@ from app.models import (
     ProblemStatement,
     RubricCriterion,
 )
-from app.services import audit_log_service, scoring_service
+from app.services import audit_log_service, risk_containment_service, scoring_service
 
 # Applications in these statuses are eligible to be scored/ranked outright.
 _RANKABLE_STATUSES = {
@@ -198,6 +198,16 @@ def maybe_unlock_commercial_envelope(db: Session, problem_statement_id: int) -> 
     )
 
     db.commit()
+
+    # Doc B Stage 5 #2: Final RiskProfile fires the moment commercial_unlocked_at
+    # is set — technical scoring is guaranteed complete for every application
+    # here (that's what just made this unlock happen), so Cybersecurity risk has
+    # full Security & compliance data for all of them. Fired for every
+    # under_evaluation application in this PS, each as its own post-commit
+    # transaction (same pattern as the preliminary trigger in application_service).
+    for application in under_evaluation_applications:
+        risk_containment_service.compute_final_risk_profile(db, application.id)
+
     return True
 
 

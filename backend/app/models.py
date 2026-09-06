@@ -155,6 +155,39 @@ class KPIVerdictResultEnum(str, enum.Enum):
     not_met = "not_met"
 
 
+class FundingBandEnum(str, enum.Enum):
+    """StartupProfile.funding_band — was free text, locked to a fixed dropdown
+    (Risk/Containment brainstorm) so Financial Risk can key off a lookup grid
+    instead of attempting math between two free-text labels."""
+    bootstrapped = "bootstrapped"
+    pre_seed = "pre_seed"
+    seed = "seed"
+    series_a = "series_a"
+    series_b_plus = "series_b_plus"
+
+
+class BudgetRangeEnum(str, enum.Enum):
+    """ProblemStatement.budget_range — was free text, locked to a fixed dropdown.
+    Doubles as the Financial Risk axis AND the Implementation Risk scope proxy
+    (no dedicated `scope` field exists in the locked schema — reusing this is
+    the closest real substitute without adding a new column)."""
+    under_5L = "under_5L"
+    band_5L_to_25L = "5L_to_25L"
+    band_25L_to_1Cr = "25L_to_1Cr"
+    over_1Cr = "over_1Cr"
+
+
+class ArchitectureTagEnum(str, enum.Enum):
+    """StartupProfile.architecture — was free text (keyword-matching bug: 'cloud-based'
+    vs 'runs on AWS cloud' scored inconsistently). Locked to a fixed checkbox set;
+    stored as a JSON list of these values, not a single Enum column."""
+    cloud = "cloud"
+    microservices = "microservices"
+    on_premise = "on_premise"
+    monolith = "monolith"
+    api_first = "api_first"
+
+
 class SandboxCheckEnum(str, enum.Enum):
     pass_ = "pass"
     fail = "fail"
@@ -210,11 +243,20 @@ class StartupProfile(Base):
     # Level 2
     team_headcount = Column(Integer, nullable=True)
     tech_stack = Column(JSON, nullable=True)
-    trl_stage = Column(String, nullable=True)
-    architecture = Column(String, nullable=True)
+    # trl_stage: was free text ("prototype-ready", "TRL 5ish") — locked to the
+    # real 1-9 TRL standard (NASA/ESA/EU ladder) as a plain Integer, app-layer
+    # validated 1-9. Ordinal/numeric, not categorical, so Integer over Enum
+    # (Risk/Containment brainstorm — Technical Risk formula needs this fixed).
+    trl_stage = Column(Integer, nullable=True)
+    # architecture: was free text (keyword-matching bug — synonyms scored
+    # inconsistently). Locked to a fixed checkbox set, stored as JSON list of
+    # ArchitectureTagEnum values, e.g. ["cloud", "api_first"].
+    architecture = Column(JSON, nullable=True)
     api_available = Column(Boolean, nullable=True)
     past_deployments = Column(JSON, nullable=True)
-    funding_band = Column(String, nullable=True)  # risk-input ONLY, never eligibility/scoring
+    # funding_band: was free text — locked to FundingBandEnum dropdown so
+    # Financial Risk can use a lookup grid against ProblemStatement.budget_range.
+    funding_band = Column(Enum(FundingBandEnum), nullable=True)  # risk-input ONLY, never eligibility/scoring
     description = Column(Text, nullable=True)  # feeds semantic matching (Doc B Layer1 #4)
 
     # Compliance — single pass, at registration, manual (§5.1)
@@ -245,7 +287,17 @@ class ProblemStatement(Base):
     target = Column(String, nullable=True)
     measurement_method = Column(String, nullable=True)  # required non-null before publish
     measurement_period = Column(String, nullable=True)
-    budget_range = Column(String, nullable=True)
+    # budget_range: was free text ("₹5-10 lakh") — locked to BudgetRangeEnum
+    # dropdown so Financial/Implementation Risk can use lookup grids instead
+    # of attempting math on a rupee-range string (Risk/Containment brainstorm).
+    budget_range = Column(Enum(BudgetRangeEnum), nullable=True)
+    # NEW FIELD (schema addition, no migration run yet so added directly):
+    # free-text narrative companion to budget_range. Once budget_range became
+    # a fixed dropdown for risk-scoring purposes, it lost the descriptive detail
+    # (e.g. "3 hospitals, phased rollout") that a future free-text-driven
+    # Containment Plan AI-assist would need to draft from. Never read by any
+    # risk/scoring logic — narrative only, optional.
+    budget_description = Column(Text, nullable=True)
     sensitivity_flags = Column(JSON, nullable=True)  # array/tag
     success_condition = Column(String, nullable=True)
     status = Column(Enum(PSStatusEnum), nullable=False, default=PSStatusEnum.draft)
