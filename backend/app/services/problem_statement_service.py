@@ -202,7 +202,10 @@ def close_problem_statement(db: Session, ps_id: int, officer_id: int) -> Problem
 # AI-Assist (advisory only — never writes, never blocks)
 # ============================================================
 
-def ai_assist_draft(rough_text: str) -> dict:
+from app.services.ps_ai_draft import ai_assist_draft as _teammate_ai_assist_draft
+
+
+async def ai_assist_draft(rough_text: str) -> dict:
     """POST /problem-statements/{id}/ai-assist — officer-owner, advisory only.
 
     Suggests: a candidate baseline question, a plausible measurement method,
@@ -211,11 +214,20 @@ def ai_assist_draft(rough_text: str) -> dict:
     gates publish (PRD §4.2.1) — officer reviews/edits/approves every field
     themselves before it's saved via update_problem_statement().
 
-    Actual LLM call/prompt construction is not modeled here — this function is
-    the seam where that call happens; return shape matches
-    ProblemStatementAiAssistResponse.
+    WIRED (this session): delegates to Teammate B's ps_ai_draft.ai_assist_draft(),
+    a direct async LLM call (Groq-hosted). Made async here because that
+    dependency is a real network call, not a stub — this function is now
+    genuinely async where it was previously an unimplemented sync seam (`...`).
+    That ripples up to the router (problem_statements.py's /ai-assist endpoint
+    is now `async def` too — see that file).
+
+    Teammate's function never raises (catches its own exceptions internally
+    and returns safe null defaults), so no try/except is added here — nothing
+    in this function needs to translate an error to HTTP.
+
+    Return shape matches ProblemStatementAiAssistResponse exactly, unchanged.
     """
-    ...
+    return await _teammate_ai_assist_draft(rough_text)
 
 
 # ============================================================
