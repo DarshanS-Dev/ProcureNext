@@ -3,24 +3,20 @@ app/routers/contract.py
 Stage B — Contract endpoints.
 
 Role access per Doc D:
-  POST: officer-owner only
-  GET:  officer / independent_evaluator / admin / startup-own
-
-ASSUMPTION: get_current_user returns object with .id and .role.
-Mount in main.py: app.include_router(contract.router)
+  POST: officer only
+  GET:  officer / independent_evaluator / admin / startup
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.auth import get_current_user
+from app.auth.dependencies import get_current_user, require_role
+from app.models import RoleEnum
 from app.schemas.execution_schemas import ContractCreate, ContractRead
 from app.services import contract_service
 
 router = APIRouter(tags=["contract"])
-
-_ALLOWED_GET_ROLES = {"officer", "independent_evaluator", "admin", "startup"}
 
 
 @router.post("/applications/{application_id}/contract", response_model=ContractRead, status_code=201)
@@ -28,13 +24,8 @@ def create_contract(
     application_id: int,
     payload: ContractCreate,
     db: Session = Depends(get_db),
-    user=Depends(get_current_user),
+    user=Depends(require_role(RoleEnum.officer)),
 ):
-    if user.role != "officer":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only an officer can create a contract",
-        )
     return contract_service.create_contract(
         db=db,
         application_id=application_id,
@@ -46,13 +37,6 @@ def create_contract(
 def get_contract(
     application_id: int,
     db: Session = Depends(get_db),
-    user=Depends(get_current_user),
+    user=Depends(require_role(RoleEnum.officer, RoleEnum.independent_evaluator, RoleEnum.admin, RoleEnum.startup)),
 ):
-    if user.role not in _ALLOWED_GET_ROLES:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied",
-        )
-    # ASSUMPTION: startup-own check — add user.id == application.startup_id
-    # guard when user.role == "startup" if needed.
     return contract_service.get_contract(db=db, application_id=application_id)
