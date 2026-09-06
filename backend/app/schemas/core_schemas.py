@@ -29,10 +29,13 @@ from pydantic import BaseModel, ConfigDict
 
 from app.models import (
     ApplicationStatusEnum,
+    ArchitectureTagEnum,
+    BudgetRangeEnum,
     CategoryEnum,
     CertificationCheckEnum,
     ChecklistStatusEnum,
     DpiitStatusEnum,
+    FundingBandEnum,
     OverallEligibilityEnum,
     PanGstEnum,
     PassFailNCEnum,
@@ -97,14 +100,19 @@ class StartupProfileLevel1Update(BaseModel):
 
 
 class StartupProfileLevel2Update(BaseModel):
-    """Input for PATCH /startup/profile/level2."""
+    """Input for PATCH /startup/profile/level2.
+
+    # Risk/Containment lock: trl_stage/architecture/funding_band were free text,
+    # now structured dropdowns feeding risk_containment_service.py's lookup
+    # tables (formulas can't do math on strings like "seed" or "TRL 5ish").
+    """
     team_headcount: Optional[int] = None
     tech_stack: Optional[list[str]] = None
-    trl_stage: Optional[str] = None
-    architecture: Optional[str] = None
+    trl_stage: Optional[int] = None  # 1-9, real TRL standard — service validates range
+    architecture: Optional[list[ArchitectureTagEnum]] = None  # fixed checkbox set
     api_available: Optional[bool] = None
     past_deployments: Optional[list] = None
-    funding_band: Optional[str] = None  # risk-input ONLY, never eligibility/scoring
+    funding_band: Optional[FundingBandEnum] = None  # risk-input ONLY, never eligibility/scoring
     description: Optional[str] = None  # feeds semantic matching
 
 
@@ -123,11 +131,11 @@ class StartupProfileRead(BaseModel):
     sector_tags: Optional[list[str]] = None
     team_headcount: Optional[int] = None
     tech_stack: Optional[list[str]] = None
-    trl_stage: Optional[str] = None
-    architecture: Optional[str] = None
+    trl_stage: Optional[int] = None
+    architecture: Optional[list[ArchitectureTagEnum]] = None
     api_available: Optional[bool] = None
     past_deployments: Optional[list] = None
-    funding_band: Optional[str] = None
+    funding_band: Optional[FundingBandEnum] = None
     description: Optional[str] = None
     dpiit_status: DpiitStatusEnum
     entity_verified: bool
@@ -166,11 +174,11 @@ class StartupProfileMergedRead(BaseModel):
     sector_tags: Optional[list[str]] = None
     team_headcount: Optional[int] = None
     tech_stack: Optional[list[str]] = None
-    trl_stage: Optional[str] = None
-    architecture: Optional[str] = None
+    trl_stage: Optional[int] = None
+    architecture: Optional[list[ArchitectureTagEnum]] = None
     api_available: Optional[bool] = None
     past_deployments: Optional[list] = None
-    funding_band: Optional[str] = None
+    funding_band: Optional[FundingBandEnum] = None
     description: Optional[str] = None
     dpiit_status: DpiitStatusEnum
     entity_verified: bool
@@ -203,7 +211,8 @@ class ProblemStatementBase(BaseModel):
     target: Optional[str] = None
     measurement_method: Optional[str] = None
     measurement_period: Optional[str] = None
-    budget_range: Optional[str] = None
+    budget_range: Optional[BudgetRangeEnum] = None  # was free text — Risk/Containment lock
+    budget_description: Optional[str] = None  # NEW — free-text narrative companion, risk-inert
     sensitivity_flags: Optional[list[str]] = None
     success_condition: Optional[str] = None
     additional_required_documents: Optional[list[str]] = None
@@ -238,7 +247,8 @@ class ProblemStatementUpdate(BaseModel):
     target: Optional[str] = None
     measurement_method: Optional[str] = None
     measurement_period: Optional[str] = None
-    budget_range: Optional[str] = None
+    budget_range: Optional[BudgetRangeEnum] = None
+    budget_description: Optional[str] = None
     sensitivity_flags: Optional[list[str]] = None
     success_condition: Optional[str] = None
     additional_required_documents: Optional[list[str]] = None
@@ -600,3 +610,43 @@ class AuditLogRead(BaseModel):
     entity_id: int
     timestamp: datetime
     log_metadata: Optional[dict] = None
+
+
+# ============================================================
+# SEMANTIC MATCHING (Teammate B handoff — matching_service.py)
+# ============================================================
+
+class ProblemStatementMatchRead(ProblemStatementBase):
+    """
+    Response for GET /startup/problem-statements — one entry per published PS,
+    with a `recommended` flag layered on top of the normal PS fields.
+
+    # JUDGMENT CALL: extends ProblemStatementBase (not the full ProblemStatementRead)
+    # to avoid re-deriving is_locked_field_editable for a listing endpoint that
+    # has nothing to do with edit-locking — that field is specific to the
+    # officer-authoring view. If frontend wants it here too, promote this to
+    # extend ProblemStatementRead instead.
+    """
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    officer_id: int
+    status: PSStatusEnum
+    created_at: datetime
+    published_at: Optional[datetime] = None
+    commercial_unlocked_at: Optional[datetime] = None
+    recommended: bool  # True if this PS appeared in the startup's semantic match results
+
+
+class StartupMatchEntry(BaseModel):
+    """One row within the ranked list for GET /problem-statements/{id}/matches."""
+    startup_id: int
+    name: str
+    rank: int
+    recommended: bool  # True for rank 1 only (see judgment call in router)
+
+
+class PSMatchRankingRead(BaseModel):
+    """Standalone response wrapping the ranked startup-match list for a PS."""
+    problem_statement_id: int
+    matches: list[StartupMatchEntry]

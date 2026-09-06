@@ -75,9 +75,10 @@ from app.models import (
     CertificationCheckEnum,
     ProblemStatement,
     PSStatusEnum,
+    SelectionDecision,
     StartupProfile,
 )
-from app.services import audit_log_service, checklist_service
+from app.services import audit_log_service, checklist_service, decision_readiness_service, risk_containment_service
 
 
 # ============================================================
@@ -110,6 +111,19 @@ class ApplicationNotFoundError(ApplicationServiceError):
 
 class EligibilityCheckNotFoundError(ApplicationServiceError):
     pass
+
+
+class NotOfficerOfProblemStatementError(ApplicationServiceError):
+    pass
+
+
+class ApplicationNotSelectableError(ApplicationServiceError):
+    """Raised when select is attempted on an application not in under_evaluation."""
+
+
+class DuplicateSelectionError(ApplicationServiceError):
+    """Raised when a SelectionDecision already exists for this problem_statement_id
+    (Doc B Stage 6 #4 — one per PS, service-layer check, not a DB constraint)."""
 
 
 # ============================================================
@@ -324,8 +338,6 @@ def update_eligibility_check(
     else:
         eligibility_check.overall_result = OverallEligibilityEnum.eligible
         application.status = ApplicationStatusEnum.under_evaluation
-        # SEAM: trigger preliminary RiskProfile computation here once
-        # risk_containment_service.py exists (Doc B Stage 5 #1).
 
     audit_log_service.write_audit_log(
         db,
@@ -338,7 +350,111 @@ def update_eligibility_check(
 
     db.commit()
     db.refresh(eligibility_check)
+
+    # SEAM RESOLVED (Doc B Stage 5 #1): now that risk_containment_service.py
+    # exists, fire preliminary RiskProfile computation the moment eligibility
+    # flips to `eligible`. Called post-commit as its own transaction — it does
+    # its own commit, so it doesn't need to share this function's transaction
+    # boundary (same pattern as scoring_service's post-commit QCBS-unlock call).
+    if eligibility_check.overall_result == OverallEligibilityEnum.eligible:
+        risk_containment_service.compute_preliminary_risk_profile(db, application_id)
+
     return eligibility_check
+
+
+# ============================================================
+# Selection (Doc B Stage 6 #2-4, Doc D "POST /applications/{id}/select")
+# ============================================================
+
+def create_selection_decision(
+    db: Session, application_id: int, officer_id: int
+) -> SelectionDecision:
+    """
+    POST /applications/{id}/select — officer-owner.
+
+    Was flagged as an open gap in an earlier session: decision_readiness_service.py
+    computes the six-check gate but does not itself create SelectionDecision rows
+    (that's this file's table, per that module's own docstring). This function is
+    the missing piece — the only place SelectionDecision rows get created.
+
+    Enforces, in order:
+      1. Application exists, is in status=under_evaluation (only status a
+         selection can be made from, per the Layer 3 transition table).
+      2. Caller is the owning officer of the application's ProblemStatement.
+      3. Decision Readiness gate (Doc B Stage 6 #1/#2) — all six checks pass,
+         via decision_readiness_service.assert_decision_ready(). Raises 400
+         (translated by router) if any check fails, carrying the failed-check
+         detail on the exception.
+      4. Only one SelectionDecision per problem_statement_id (Doc B Stage 6 #4)
+         — service-layer check, not a DB unique constraint, per that decision.
+
+    On success: creates SelectionDecision row, flips Application.status ->
+    selected, logs AuditLog. Does NOT auto-reject sibling applications under
+    the same PS (Doc B Stage 6 #3 — that's a separate, not-yet-built, manual
+    Officer action via the existing mark_application_not_selected path).
+    """
+    application = db.query(Application).filter(Application.id == application_id).first()
+    if application is None:
+        raise ApplicationNotFoundError(f"Application {application_id} not found")
+
+    if application.status != ApplicationStatusEnum.under_evaluation:
+        raise ApplicationNotSelectableError(
+            f"Application {application_id} is in status={application.status.value}, "
+            f"expected under_evaluation to be selectable"
+        )
+
+    ps = (
+        db.query(ProblemStatement)
+        .filter(ProblemStatement.id == application.problem_statement_id)
+        .first()
+    )
+    if ps is None:
+        raise ApplicationServiceError(
+            f"ProblemStatement {application.problem_statement_id} not found"
+        )
+    if ps.officer_id != officer_id:
+        raise NotOfficerOfProblemStatementError("Not the owning officer of this Problem Statement")
+
+    # Doc B Stage 6 #2: reject with 400 if any readiness check fails. Raises
+    # decision_readiness_service.NotDecisionReadyError (carries the readiness
+    # dict) — not caught here, propagated to the router to translate to HTTP.
+    decision_readiness_service.assert_decision_ready(db, application_id)
+
+    # Doc B Stage 6 #4: one SelectionDecision per PS, service-layer check.
+    existing = (
+        db.query(SelectionDecision)
+        .filter(SelectionDecision.problem_statement_id == ps.id)
+        .first()
+    )
+    if existing is not None:
+        raise DuplicateSelectionError(
+            f"ProblemStatement {ps.id} already has a SelectionDecision "
+            f"(application_id={existing.application_id})"
+        )
+
+    selection = SelectionDecision(
+        problem_statement_id=ps.id,
+        application_id=application_id,
+        officer_id=officer_id,
+    )
+    db.add(selection)
+
+    application.status = ApplicationStatusEnum.selected
+
+    db.flush()
+
+    audit_log_service.write_audit_log(
+        db,
+        actor_id=officer_id,
+        action="application_selected",
+        entity_type="SelectionDecision",
+        entity_id=selection.id,
+        metadata={"application_id": application_id, "problem_statement_id": ps.id},
+    )
+
+    db.commit()
+    db.refresh(selection)
+    return selection
 
 
 # ============================================================
