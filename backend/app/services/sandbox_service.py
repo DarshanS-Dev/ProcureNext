@@ -5,7 +5,7 @@
 # - app.database has get_db() yielding a SQLAlchemy Session
 # - app.models has Application, SandboxTrial, SandboxCheckEnum, SandboxVerdictEnum,
 #   VerificationModeEnum
-# - app.services.application_transitions has mark_application_not_selected
+# - app.services.application_service has mark_application_not_selected
 #   (per Doc A §3 — this is the shared Layer 1-4 function, owned by your
 #   captain's side; you only ever CALL it, never write Application.status
 #   directly)
@@ -23,12 +23,9 @@ from app.models import (
     VerificationModeEnum,
     SelectionDecision,
 )
-from app.services.application_transitions import mark_application_not_selected
-# NOTE: Doc A §3 defines this function's signature as
-#   mark_application_not_selected(application_id: int, reason: str) -> None
-# i.e. it takes NO db/session argument — it's described as an internal
-# same-codebase call, so it must manage its own session/transaction.
-# Confirm the real implementation with your captain before relying on this.
+from app.services.application_service import mark_application_not_selected
+# Actual signature: mark_application_not_selected(db, application_id, reason) -> None
+# Confirmed from Darshan's application_service.py — takes db as first arg.
 
 
 def _compute_verdict(trial: SandboxTrial) -> SandboxVerdictEnum:
@@ -185,6 +182,7 @@ def _handle_verdict_side_effects(db: Session, application: Application, trial: S
     if trial.verdict == SandboxVerdictEnum.not_promising:
         # Doc A §3 exact signature — no db argument.
         mark_application_not_selected(
+            db=db,
             application_id=application.id,
             reason="sandbox_not_promising",
         )

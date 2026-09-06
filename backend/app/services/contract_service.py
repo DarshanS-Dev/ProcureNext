@@ -4,8 +4,8 @@ Stage B — Contract creation and retrieval.
 
 Doc A §3 rules strictly followed:
 - Never write Application.status directly.
-- Call mark_application_contracted(application_id) immediately on contract creation.
-- mark_application_contracted signature: (application_id: int) -> None — no db arg.
+- Call mark_application_contracted(db, application_id) immediately on contract creation.
+- mark_application_contracted signature: (db, application_id: int) -> None — takes db arg.
 
 Doc C Stage B decisions followed:
 - Contract created only if SandboxTrial.verdict = promising (#1).
@@ -30,9 +30,9 @@ from app.models import (
     MilestoneStatusEnum,
     PaymentStatusEnum,
 )
-from app.services.application_transitions import mark_application_contracted
-# Doc A §3: mark_application_contracted(application_id: int) -> None
-# No db argument — manages its own session internally.
+from app.services.application_service import mark_application_contracted
+# Actual signature: mark_application_contracted(db, application_id) -> None
+# Confirmed from Darshan's application_service.py — takes db as first arg.
 
 
 # ---- Clause snapshot templates (Doc C Stage B #2) ----
@@ -193,7 +193,7 @@ def create_contract(
 
     # --- 8. Call mark_application_contracted immediately (Doc A §3, Doc C Stage B #4) ---
     # Called after commit so the Contract row is persisted before the status transition.
-    mark_application_contracted(application_id=application_id)
+    mark_application_contracted(db=db, application_id=application_id)
 
     return contract
 
