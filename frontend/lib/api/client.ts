@@ -1,11 +1,4 @@
 import {
-  mockUsers, mockStartups, mockProblemStatements, mockApplications,
-  mockEligibility, mockChecklistItems, mockEvaluatorAssignments, mockCOIDeclarations,
-  mockScores, mockQCBSScore, mockQCBSRankings, mockRiskProfile, mockContainmentPlan,
-  mockDecisionReadiness, mockContract, mockMilestones, mockKPIVerdicts,
-  mockPilotOutcome, mockAuditLogs
-} from './mockData';
-import {
   ProblemStatementRead, ApplicationRead, EligibilityCheckRead, ChecklistItemRead,
   COIDeclarationRead, EvaluationScoreRead, ScoreCompletenessRead, QCBSScoreRead,
   QCBSRankingRead, RiskProfileRead, ContainmentPlanRead, DecisionReadinessRead,
@@ -13,113 +6,159 @@ import {
   AuditLogRead, PSEvaluatorAssignmentRead, StartupProfileMergedRead, UserRead
 } from '@/lib/types/api';
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options.headers as Record<string, string> || {}),
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${API_BASE}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`API Error ${res.status}: ${errorText}`);
+  }
+
+  return res.json();
+}
+
 export const api = {
   // Auth & Users
-  getUsers: async (): Promise<UserRead[]> => mockUsers,
+  getUsers: async (): Promise<UserRead[]> => {
+    return fetchAPI<UserRead[]>('/admin/users');
+  },
   
   // Startups
   getStartupProfile: async (userId?: number): Promise<StartupProfileMergedRead> => {
-    return mockStartups[0];
+    return fetchAPI<StartupProfileMergedRead>('/startups/profile/merged');
   },
   verifyStartupCompliance: async (userId: number, status: 'verified' | 'flagged') => {
-    const startup = mockStartups.find(s => s.user_id === userId);
-    if (startup) startup.compliance_status = status;
-    return startup;
+    return fetchAPI<StartupProfileMergedRead>(`/admin/startups/${userId}/compliance`, {
+      method: 'POST',
+      body: JSON.stringify({ compliance_status: status }),
+    });
   },
 
-  // Problem Statements & KPIs (Moved KPI create/read here per v2)
-  getProblemStatements: async (): Promise<ProblemStatementRead[]> => mockProblemStatements,
+  // Problem Statements & KPIs
+  getProblemStatements: async (): Promise<ProblemStatementRead[]> => {
+    return fetchAPI<ProblemStatementRead[]>('/problem-statements');
+  },
   getProblemStatementById: async (id: number): Promise<ProblemStatementRead | undefined> => {
-    return mockProblemStatements.find(p => p.id === id);
+    return fetchAPI<ProblemStatementRead>(`/problem-statements/${id}`);
   },
   createKPI: async (kpi: Omit<KPIRead, 'id' | 'created_at'>): Promise<KPIRead> => {
-    const newKpi: KPIRead = { ...kpi, id: Date.now(), created_at: new Date().toISOString() };
-    const ps = mockProblemStatements.find(p => p.id === kpi.problem_statement_id);
-    if (ps) {
-      ps.kpis = ps.kpis || [];
-      ps.kpis.push(newKpi);
-    }
-    return newKpi;
+    return fetchAPI<KPIRead>(`/problem-statements/${kpi.problem_statement_id}/kpis`, {
+      method: 'POST',
+      body: JSON.stringify(kpi),
+    });
   },
   getKPIsForPS: async (psId: number): Promise<KPIRead[]> => {
-    const ps = mockProblemStatements.find(p => p.id === psId);
-    return ps?.kpis || [];
+    return fetchAPI<KPIRead[]>(`/problem-statements/${psId}/kpis`);
   },
 
   // Applications
-  getApplications: async (): Promise<ApplicationRead[]> => mockApplications,
-  
-  // FIX #1: IE is authorized for GET /applications/{id} in frontend mock layer (or composed fallback)
+  getApplications: async (): Promise<ApplicationRead[]> => {
+    return fetchAPI<ApplicationRead[]>('/applications');
+  },
   getApplicationById: async (id: number, userRole?: string): Promise<ApplicationRead | undefined> => {
-    // IE is explicitly supported in our frontend client layer
-    return mockApplications.find(a => a.id === id);
+    return fetchAPI<ApplicationRead>(`/applications/${id}`);
   },
 
-  // FIX #1 (V2 Wirings): Eligibility Check trio + Decision Readiness GET
-  getEligibilityCheck: async (appId: number): Promise<EligibilityCheckRead> => mockEligibility,
-  updateEligibilityCheck: async (appId: number, update: { overall_result: 'pass' | 'fail' | 'needs_clarification'; notes?: string }) => {
-    mockEligibility.overall_result = update.overall_result;
-    if (update.notes) mockEligibility.notes = update.notes;
-    return mockEligibility;
+  // Eligibility & Decision Readiness
+  getEligibilityCheck: async (appId: number): Promise<EligibilityCheckRead> => {
+    return fetchAPI<EligibilityCheckRead>(`/applications/${appId}/eligibility-check`);
   },
-  getDecisionReadiness: async (appId: number): Promise<DecisionReadinessRead> => mockDecisionReadiness,
+  updateEligibilityCheck: async (appId: number, update: { overall_result: 'pass' | 'fail' | 'needs_clarification'; notes?: string }) => {
+    return fetchAPI<EligibilityCheckRead>(`/applications/${appId}/eligibility-check`, {
+      method: 'PUT',
+      body: JSON.stringify(update),
+    });
+  },
+  getDecisionReadiness: async (appId: number): Promise<DecisionReadinessRead> => {
+    return fetchAPI<DecisionReadinessRead>(`/applications/${appId}/decision-readiness`);
+  },
   selectStartupForPilot: async (appId: number, justification: string) => {
-    const app = mockApplications.find(a => a.id === appId);
-    if (app) app.status = 'selected';
-    return { success: true, app };
+    return fetchAPI<{ success: boolean; app: ApplicationRead }>(`/applications/${appId}/select-pilot`, {
+      method: 'POST',
+      body: JSON.stringify({ justification }),
+    });
   },
 
   // Checklist
-  getChecklist: async (appId: number): Promise<ChecklistItemRead[]> => mockChecklistItems,
+  getChecklist: async (appId: number): Promise<ChecklistItemRead[]> => {
+    return fetchAPI<ChecklistItemRead[]>(`/applications/${appId}/checklist`);
+  },
   
   // Evaluators & COI
-  getEvaluatorAssignments: async (psId: number): Promise<PSEvaluatorAssignmentRead[]> => mockEvaluatorAssignments,
-  declareCOI: async (appId: number, evaluatorId: number, hasConflict: boolean) => {
-    const coi = mockCOIDeclarations.find(c => c.application_id === appId && c.evaluator_id === evaluatorId);
-    if (coi) {
-      coi.has_conflict = hasConflict;
-      coi.status = hasConflict ? 'recused' : 'cleared';
-    }
-    return coi;
+  getEvaluatorAssignments: async (psId: number): Promise<PSEvaluatorAssignmentRead[]> => {
+    return fetchAPI<PSEvaluatorAssignmentRead[]>(`/problem-statements/${psId}/evaluators`);
   },
-  getCOIDeclarations: async (appId: number): Promise<COIDeclarationRead[]> => mockCOIDeclarations,
+  declareCOI: async (appId: number, evaluatorId: number, hasConflict: boolean) => {
+    return fetchAPI<COIDeclarationRead>(`/applications/${appId}/coi-declaration`, {
+      method: 'POST',
+      body: JSON.stringify({ declared_conflict: hasConflict }),
+    });
+  },
+  getCOIDeclarations: async (appId: number): Promise<COIDeclarationRead[]> => {
+    return fetchAPI<COIDeclarationRead[]>(`/applications/${appId}/coi-declaration`);
+  },
 
   // Scoring & QCBS
-  getScores: async (appId: number): Promise<EvaluationScoreRead[]> => mockScores,
-  getScoreCompleteness: async (appId: number): Promise<ScoreCompletenessRead> => ({
-    complete: true,
-    pending_evaluator_ids: [],
-    pending_evaluator_names: [],
-    total_assigned: 2,
-    total_submitted: 2,
-  }),
-  getQCBSScore: async (appId: number): Promise<QCBSScoreRead> => mockQCBSScore,
-
-  // Risk & Containment
-  getRiskProfile: async (appId: number): Promise<RiskProfileRead> => mockRiskProfile,
-  getContainmentPlan: async (appId: number): Promise<ContainmentPlanRead> => mockContainmentPlan,
-
-  // Sandbox & Contract & Milestones
-  getContract: async (appId: number): Promise<ContractRead> => mockContract,
-  getMilestones: async (contractId: number): Promise<MilestoneRead[]> => mockMilestones,
-
-  // FIX #2: Narrowed kpi.ts to contracts/{id}/kpi-verdicts ONLY
-  getKPIVerdicts: async (contractId: number): Promise<KPIVerdictRead[]> => mockKPIVerdicts,
-  submitKPIVerdict: async (contractId: number, verdict: Omit<KPIVerdictRead, 'id'>): Promise<KPIVerdictRead> => {
-    const newV: KPIVerdictRead = { ...verdict, id: Date.now() };
-    mockKPIVerdicts.push(newV);
-    return newV;
+  getScores: async (appId: number): Promise<EvaluationScoreRead[]> => {
+    return fetchAPI<EvaluationScoreRead[]>(`/applications/${appId}/scores`);
+  },
+  getScoreCompleteness: async (appId: number): Promise<ScoreCompletenessRead> => {
+    return fetchAPI<ScoreCompletenessRead>(`/applications/${appId}/scores/completeness`);
+  },
+  getQCBSScore: async (appId: number): Promise<QCBSScoreRead> => {
+    return fetchAPI<QCBSScoreRead>(`/applications/${appId}/qcbs-score`);
   },
 
-  // FIX #2: IE Pilot Outcome view access
-  getPilotOutcome: async (contractId: number): Promise<PilotOutcomeRead> => mockPilotOutcome,
+  // Risk & Containment
+  getRiskProfile: async (appId: number): Promise<RiskProfileRead> => {
+    return fetchAPI<RiskProfileRead>(`/applications/${appId}/risk-profile`);
+  },
+  getContainmentPlan: async (appId: number): Promise<ContainmentPlanRead> => {
+    return fetchAPI<ContainmentPlanRead>(`/applications/${appId}/containment-plan`);
+  },
 
-  // FIX #3: Admin audit log endpoint definition with query filters
+  // Sandbox & Contract & Milestones
+  getContract: async (appId: number): Promise<ContractRead> => {
+    return fetchAPI<ContractRead>(`/applications/${appId}/contract`);
+  },
+  getMilestones: async (contractId: number): Promise<MilestoneRead[]> => {
+    return fetchAPI<MilestoneRead[]>(`/contracts/${contractId}/milestones`);
+  },
+
+  // KPI Verdicts
+  getKPIVerdicts: async (contractId: number): Promise<KPIVerdictRead[]> => {
+    return fetchAPI<KPIVerdictRead[]>(`/contracts/${contractId}/kpi-verdicts`);
+  },
+  submitKPIVerdict: async (contractId: number, verdict: Omit<KPIVerdictRead, 'id'>): Promise<KPIVerdictRead> => {
+    return fetchAPI<KPIVerdictRead>(`/contracts/${contractId}/kpi-verdicts`, {
+      method: 'POST',
+      body: JSON.stringify(verdict),
+    });
+  },
+
+  // Pilot Outcome
+  getPilotOutcome: async (contractId: number): Promise<PilotOutcomeRead> => {
+    return fetchAPI<PilotOutcomeRead>(`/contracts/${contractId}/pilot-outcome`);
+  },
+
+  // Audit Logs
   getAuditLogs: async (params?: { entity_type?: string; entity_id?: number; actor_id?: number }): Promise<AuditLogRead[]> => {
-    let result = [...mockAuditLogs];
-    if (params?.entity_type) result = result.filter(l => l.entity_type === params.entity_type);
-    if (params?.entity_id) result = result.filter(l => l.entity_id === params.entity_id);
-    if (params?.actor_id) result = result.filter(l => l.actor_id === params.actor_id);
-    return result;
+    const query = new URLSearchParams(params as Record<string, string> || {}).toString();
+    return fetchAPI<AuditLogRead[]>(`/admin/audit-logs${query ? `?${query}` : ''}`);
   }
 };

@@ -109,19 +109,89 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
 
   const currentRoleConfig = ROLES.find(r => r.id === selectedRole) || ROLES[0];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      if (onLoginSuccess) {
-        onLoginSuccess({
-          email: email || `${selectedRole}@setu-procure.gov.in`,
-          role: selectedRole,
-          name: fullName || (selectedRole === 'startup' ? 'Aarav Sharma' : 'Officer Vikram Malhotra')
+
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+    try {
+      if (mode === 'login') {
+        const res = await fetch(`${API_BASE}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
         });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({ detail: 'Authentication failed' }));
+          alert(`Login Error: ${errData.detail || 'Invalid credentials'}`);
+          setIsLoading(false);
+          return;
+        }
+
+        const data = await res.json();
+        if (data.access_token) {
+          localStorage.setItem('token', data.access_token);
+        }
+
+        setIsLoading(false);
+        if (onLoginSuccess) {
+          onLoginSuccess({
+            email,
+            role: selectedRole,
+            name: fullName || email.split('@')[0],
+          });
+        }
+      } else {
+        // Register Startup Account
+        const res = await fetch(`${API_BASE}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            password,
+            name: fullName || 'New Startup User',
+            role: 'startup',
+          }),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({ detail: 'Registration failed' }));
+          alert(`Registration Error: ${errData.detail || 'Could not create account'}`);
+          setIsLoading(false);
+          return;
+        }
+
+        const registeredUser = await res.json();
+        
+        // Auto-login after registration
+        const loginRes = await fetch(`${API_BASE}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+
+        if (loginRes.ok) {
+          const loginData = await loginRes.json();
+          if (loginData.access_token) {
+            localStorage.setItem('token', loginData.access_token);
+          }
+        }
+
+        setIsLoading(false);
+        if (onLoginSuccess) {
+          onLoginSuccess({
+            email: registeredUser.email,
+            role: registeredUser.role || 'startup',
+            name: registeredUser.name || fullName,
+          });
+        }
       }
-    }, 1000);
+    } catch (err: any) {
+      alert(`Network Error: Ensure FastAPI server is running at ${API_BASE}`);
+      setIsLoading(false);
+    }
   };
 
   return (

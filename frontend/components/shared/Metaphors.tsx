@@ -1,4 +1,5 @@
 import React from 'react';
+import { Rocket, Mail, Lock } from 'lucide-react';
 
 // FlaskGauge (Traffic-Light Flask) — Paper aesthetic
 export const FlaskGauge: React.FC<{ actual: number; target: number; metricName: string; unit: string }> = ({
@@ -107,8 +108,8 @@ export const TwoFacedScale: React.FC<{ techScore: number; commScore: number; fin
 // OrigamiRocket — Resubmission Metaphor
 export const OrigamiRocket: React.FC = () => (
   <div className="flex items-center gap-3 bg-[#EAF7ED] border border-[#B8E6C4] p-3.5 rounded-lg">
-    <div className="w-9 h-9 bg-[#1E9E5A] rounded-lg flex items-center justify-center text-base text-white">
-      🚀
+    <div className="w-9 h-9 bg-[#1E9E5A] rounded-lg flex items-center justify-center">
+      <Rocket className="w-5 h-5 text-white" />
     </div>
     <div>
       <div className="text-xs font-bold uppercase text-[#14532D]">Clarification Requested</div>
@@ -126,7 +127,9 @@ export const StampAnimation: React.FC<{ label: string }> = ({ label }) => (
 
 export const WinkingEnvelope: React.FC<{ unlocked: boolean }> = ({ unlocked }) => (
   <div className={`p-3.5 rounded-lg border flex items-center gap-3 ${unlocked ? 'bg-[#EAF7ED] text-[#14532D] border-[#B8E6C4]' : 'bg-[#F8F6F1] border-[#E8E2D5] text-[#6B6560]'}`}>
-    <span className="text-xl">{unlocked ? '✉️ 😉' : '✉️ 🔒'}</span>
+    <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${unlocked ? 'bg-[#1E9E5A]' : 'bg-[#E8E2D5]'}`}>
+      {unlocked ? <Mail className="w-4 h-4 text-white" /> : <Lock className="w-4 h-4 text-[#6B6560]" />}
+    </div>
     <div>
       <div className={`text-xs font-bold uppercase ${unlocked ? 'text-[#14532D]' : 'text-[#1A1A1A]'}`}>{unlocked ? 'Commercial Envelopes Unlocked' : 'Commercial Envelopes Sealed'}</div>
       <div className="text-[11px] font-medium opacity-80">
