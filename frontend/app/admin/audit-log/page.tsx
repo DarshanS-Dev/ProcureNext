@@ -4,7 +4,7 @@ import { AppLayout } from '@/components/shared/AppLayout';
 import {
   PageHeader, DataCard, StatusBadge, StickyNote, DocLinkButton, DocRow, SectionDivider
 } from '@/components/shared/DesignSystem';
-import { Sparkles, Clock, FileText } from 'lucide-react';
+import { ScrollText, Clock, Landmark, Scale, FlaskConical, Rocket, ShieldCheck as AdminIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const auditLogs = [
@@ -48,7 +48,7 @@ export default function AdminAuditLogPage() {
 
         <DataCard noPad>
           <div className="px-5 py-4 border-b border-[#EDE7DB] flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-[#A89F94]" />
+            <ScrollText className="w-4 h-4 text-[#A89F94]" />
             <h2 className="text-sm font-bold text-[#1A1A1A]">System State Transitions</h2>
             <span className="ml-auto text-[11px] text-[#A89F94] font-mono">{auditLogs.length} events</span>
           </div>
@@ -68,11 +68,15 @@ export default function AdminAuditLogPage() {
                   className="flex gap-4 px-5 py-4 hover:bg-[#FDFBF7] transition-colors border-b border-[#EDE7DB] last:border-b-0"
                 >
                   {/* Timeline dot */}
-                  <div className="relative z-10 shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs"
+                  <div className="relative z-10 shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
                     style={{ backgroundColor: actorStyle.bg, border: `1.5px solid ${actorStyle.border}` }}>
-                    <span className="text-sm">
-                      {{ admin: '🔐', officer: '🏛️', evaluator: '⚖️', 'independent-evaluator': '🧪', startup: '🚀' }[log.actor] ?? '📋'}
-                    </span>
+                    {{
+                      admin: <AdminIcon className="w-3.5 h-3.5" style={{ color: actorStyle.text }} />,
+                      officer: <Landmark className="w-3.5 h-3.5" style={{ color: actorStyle.text }} />,
+                      evaluator: <Scale className="w-3.5 h-3.5" style={{ color: actorStyle.text }} />,
+                      'independent-evaluator': <FlaskConical className="w-3.5 h-3.5" style={{ color: actorStyle.text }} />,
+                      startup: <Rocket className="w-3.5 h-3.5" style={{ color: actorStyle.text }} />,
+                    }[log.actor] ?? <ScrollText className="w-3.5 h-3.5" style={{ color: actorStyle.text }} />}
                   </div>
 
                   <div className="flex-1 min-w-0">

@@ -152,6 +152,49 @@ export default function AdminUsersPage() {
                 />
               ))}
             </DataCard>
+
+            {/* Evaluator Replacement & COI Recusal Panel */}
+            <div className="mt-6">
+              <DocumentForm
+                title="Evaluator Replacement & COI Recusal Management"
+                subtitle="Execute recusal swap per POST /problem-statements/{id}/evaluators/replace"
+                refNumber="EVL-SWAP-01"
+                role="admin"
+                watermark="RECUSAL"
+              >
+                <div className="space-y-4 pt-1">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <FormField label="Problem Statement ID" required>
+                      <DocInput type="number" defaultValue={1} />
+                    </FormField>
+                    <FormField label="Recused Application ID" required>
+                      <DocInput type="number" defaultValue={1} />
+                    </FormField>
+                    <FormField label="Old Evaluator (Recused)" required>
+                      <DocSelect defaultValue={2}>
+                        <option value={2}>Dr. Ananya Roy (ID: 2)</option>
+                      </DocSelect>
+                    </FormField>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <FormField label="Replacement Evaluator (New)" required>
+                      <DocInput placeholder="Enter new evaluator user ID" defaultValue={4} />
+                    </FormField>
+                    <div className="flex items-end">
+                      <DocButton
+                        variant="primary"
+                        role="admin"
+                        className="w-full justify-center"
+                        icon={<Shield className="w-3.5 h-3.5" />}
+                        onClick={() => setNotice({ type: 'success', msg: 'Evaluator replaced successfully. Old evaluator recused on App #1, replacement assigned to PS.' })}
+                      >
+                        Execute Evaluator Replacement
+                      </DocButton>
+                    </div>
+                  </div>
+                </div>
+              </DocumentForm>
+            </div>
           </div>
         </div>
       </div>

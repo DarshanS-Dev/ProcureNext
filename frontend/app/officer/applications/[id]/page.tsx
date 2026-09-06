@@ -1,19 +1,45 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/shared/AppLayout';
 import { PipelineStepper } from '@/components/shared/PipelineStepper';
 import { TwoFacedScale } from '@/components/shared/Metaphors';
 import {
-  PageHeader, DocumentForm, DataCard, StatusBadge, StickyNote, DocButton, AlertStrip, SectionDivider
+  PageHeader, DocumentForm, DataCard, StatusBadge, StickyNote, DocButton, AlertStrip, SectionDivider, DocRow
 } from '@/components/shared/DesignSystem';
-import { UserRole } from '@/lib/types/api';
-import { CheckCircle2, ShieldAlert, Sparkles, Lock, ArrowRight } from 'lucide-react';
+import { UserRole, EvaluationScoreRead, ScoreCompletenessRead, QCBSScoreRead } from '@/lib/types/api';
+import { api } from '@/lib/api/client';
+import { CheckCircle2, ShieldAlert, Sparkles, ArrowRight, BarChart3, Users, AlertTriangle } from 'lucide-react';
+import { motion } from 'framer-motion';
+
+type TabId = 'eligibility' | 'scores' | 'qcbs' | 'decision-readiness';
 
 export default function OfficerApplicationReviewPage() {
-  const [activeTab, setActiveTab] = useState<'eligibility' | 'qcbs' | 'decision-readiness'>('eligibility');
+  const [activeTab, setActiveTab] = useState<TabId>('eligibility');
   const [appStatus, setAppStatus] = useState<'under_review' | 'under_evaluation' | 'selected'>('under_review');
   const [eligibilityPassed, setEligibilityPassed] = useState(false);
   const [containmentAttached, setContainmentAttached] = useState(false);
+
+  // Scores tab data
+  const [scores, setScores] = useState<EvaluationScoreRead[]>([]);
+  const [completeness, setCompleteness] = useState<ScoreCompletenessRead | null>(null);
+  const [qcbs, setQcbs] = useState<QCBSScoreRead | null>(null);
+  const [loadingScores, setLoadingScores] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'scores' || activeTab === 'qcbs') {
+      setLoadingScores(true);
+      Promise.all([
+        api.getScores(1),
+        api.getScoreCompleteness(1),
+        api.getQCBSScore(1),
+      ]).then(([s, c, q]) => {
+        setScores(s);
+        setCompleteness(c);
+        setQcbs(q);
+        setLoadingScores(false);
+      });
+    }
+  }, [activeTab]);
 
   const handleResolveEligibility = () => {
     setEligibilityPassed(true);
@@ -28,12 +54,19 @@ export default function OfficerApplicationReviewPage() {
     setAppStatus('selected');
   };
 
+  const TABS: { id: TabId; label: string }[] = [
+    { id: 'eligibility', label: 'Phase 6: Eligibility' },
+    { id: 'scores', label: 'Phase 7: Evaluator Scores' },
+    { id: 'qcbs', label: 'Phase 8: QCBS Gate' },
+    { id: 'decision-readiness', label: 'Phase 9: Decision Readiness' },
+  ];
+
   return (
     <AppLayout defaultRole={UserRole.NODAL_OFFICER}>
       <div className="space-y-6 max-w-5xl">
         <PageHeader
           title="Officer Application Casefile #1"
-          subtitle="Phase 6, 8 & 9 — Eligibility Resolution, QCBS & Decision Readiness Gate"
+          subtitle="Phase 6–9 — Eligibility, Scores, QCBS & Decision Readiness Gate"
           role={UserRole.NODAL_OFFICER}
           stickyNote={
             <StickyNote color="yellow" title="Officer Oversight">
@@ -52,39 +85,23 @@ export default function OfficerApplicationReviewPage() {
         <PipelineStepper currentStatus={appStatus} />
 
         {/* Tab navigation */}
-        <div className="flex gap-2 border-b border-[#E8E2D5] pb-2">
-          <button
-            onClick={() => setActiveTab('eligibility')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold uppercase transition-colors cursor-pointer ${
-              activeTab === 'eligibility'
-                ? 'bg-[#B8860B] text-white'
-                : 'bg-[#F8F6F1] text-[#6B6560] hover:bg-[#FDF3DC]'
-            }`}
-          >
-            Phase 6: Eligibility Resolution
-          </button>
-          <button
-            onClick={() => setActiveTab('qcbs')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold uppercase transition-colors cursor-pointer ${
-              activeTab === 'qcbs'
-                ? 'bg-[#B8860B] text-white'
-                : 'bg-[#F8F6F1] text-[#6B6560] hover:bg-[#FDF3DC]'
-            }`}
-          >
-            Phase 8: Commercial Gate & QCBS
-          </button>
-          <button
-            onClick={() => setActiveTab('decision-readiness')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold uppercase transition-colors cursor-pointer ${
-              activeTab === 'decision-readiness'
-                ? 'bg-[#B8860B] text-white'
-                : 'bg-[#F8F6F1] text-[#6B6560] hover:bg-[#FDF3DC]'
-            }`}
-          >
-            Phase 9: 6-Point Decision Readiness
-          </button>
+        <div className="flex gap-1.5 border-b border-[#E8E2D5] pb-0 overflow-x-auto">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2.5 rounded-t-lg text-[11px] font-bold uppercase tracking-wide transition-colors cursor-pointer whitespace-nowrap ${
+                activeTab === tab.id
+                  ? 'bg-white text-[#B8860B] border border-b-white border-[#E8E2D5] -mb-px'
+                  : 'bg-[#F8F6F1] text-[#6B6560] hover:bg-[#FDF3DC] border border-transparent'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
+        {/* ── Tab: Eligibility ─────────────────────────── */}
         {activeTab === 'eligibility' && (
           <DocumentForm
             title="Officer Sector & Certification Eligibility Check"
@@ -103,7 +120,7 @@ export default function OfficerApplicationReviewPage() {
                 </div>
               </div>
 
-              <div className="p-4 bg-[#FDF3DC] rounded-lg border border-[#E8C468] space-y-3">
+              <div className="p-4 bg-[#FDF3DC] rounded-lg border border-[#F7E1B5] space-y-3">
                 <div className="text-xs font-bold text-[#B8860B] uppercase tracking-wider">Manual Sector & Certification Check (Phase 6.2):</div>
                 <div className="flex gap-6 text-xs text-[#1A1A1A] font-medium">
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -139,6 +156,101 @@ export default function OfficerApplicationReviewPage() {
           </DocumentForm>
         )}
 
+        {/* ── Tab: Scores ─────────────────────────────── */}
+        {activeTab === 'scores' && (
+          <DocumentForm
+            title="Phase 7 Evaluator Scores — Score Completeness View"
+            subtitle="GET /applications/{id}/scores + /scores/completeness"
+            refNumber="SCR-701"
+            role={UserRole.NODAL_OFFICER}
+            watermark="SCORES"
+          >
+            <div className="space-y-5 pt-2">
+              {/* Completeness Banner */}
+              {completeness && (
+                <div
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg border text-xs font-bold ${
+                    completeness.complete
+                      ? 'bg-[#EAF7ED] border-[#B8E6C4] text-[#1E9E5A]'
+                      : 'bg-[#FDF3DC] border-[#F7E1B5] text-[#B8860B]'
+                  }`}
+                >
+                  {completeness.complete
+                    ? <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    : <AlertTriangle className="w-4 h-4 shrink-0" />}
+                  <div className="flex-1">
+                    <span className="uppercase tracking-wide">
+                      {completeness.complete ? 'All Scores Submitted' : 'Pending Evaluator Submissions'}
+                    </span>
+                    <span className="ml-3 font-normal opacity-80">
+                      {completeness.total_submitted} / {completeness.total_assigned} evaluators submitted
+                    </span>
+                  </div>
+                  {!completeness.complete && completeness.pending_evaluator_names?.length && (
+                    <span className="text-[10px] font-normal">
+                      Pending: {completeness.pending_evaluator_names.join(', ')}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {loadingScores ? (
+                <div className="py-8 text-center text-sm text-[#A89F94]">Loading scores…</div>
+              ) : scores.length === 0 ? (
+                <div className="py-8 text-center">
+                  <BarChart3 className="w-8 h-8 text-[#C4B9AE] mx-auto mb-2" />
+                  <p className="text-sm text-[#A89F94] font-medium">No scores submitted yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {scores.map((s, i) => {
+                    const pct = Math.round((s.total_score / 100) * 100);
+                    return (
+                      <motion.div
+                        key={s.id}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.07 }}
+                        className="p-4 rounded-lg border border-[#E8E2D5] bg-[#F8F6F1] space-y-3"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Users className="w-3.5 h-3.5 text-[#A89F94]" />
+                            <span className="text-xs font-bold text-[#1A1A1A]">{s.evaluator_name}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-[11px] text-[#A89F94] font-mono">{new Date(s.submitted_at).toLocaleDateString()}</span>
+                            <span className="text-sm font-black text-[#2563EB]">{s.total_score} <span className="text-[#A89F94] font-normal text-xs">/ 100</span></span>
+                          </div>
+                        </div>
+                        {/* Score breakdown mini-bar */}
+                        <div className="space-y-1.5">
+                          {s.scores.slice(0, 4).map((entry, j) => (
+                            <div key={j} className="flex items-center gap-2">
+                              <span className="text-[10px] text-[#A89F94] w-5 shrink-0 font-mono">C{entry.criterion_id}</span>
+                              <div className="flex-1 h-1.5 bg-[#E8E2D5] rounded-full overflow-hidden">
+                                <div
+                                  className="h-full rounded-full"
+                                  style={{ width: `${(entry.score / 20) * 100}%`, backgroundColor: '#2563EB' }}
+                                />
+                              </div>
+                              <span className="text-[10px] text-[#6B6560] font-mono w-6 text-right">{entry.score}</span>
+                            </div>
+                          ))}
+                          {s.scores.length > 4 && (
+                            <p className="text-[10px] text-[#A89F94]">+ {s.scores.length - 4} more criteria</p>
+                          )}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </DocumentForm>
+        )}
+
+        {/* ── Tab: QCBS ────────────────────────────────── */}
         {activeTab === 'qcbs' && (
           <DocumentForm
             title="Phase 8 Commercial Gate & 70:30 QCBS Computation"
@@ -148,9 +260,17 @@ export default function OfficerApplicationReviewPage() {
             watermark="QCBS"
           >
             <div className="space-y-6 pt-2">
-              <div className="p-4 bg-[#F8F6F1] rounded-lg border border-[#E8E2D5]">
-                <TwoFacedScale techScore={88} commScore={92} finalScore={89.2} />
-              </div>
+              {loadingScores ? (
+                <div className="py-8 text-center text-sm text-[#A89F94]">Computing QCBS…</div>
+              ) : qcbs ? (
+                <div className="p-4 bg-[#F8F6F1] rounded-lg border border-[#E8E2D5]">
+                  <TwoFacedScale techScore={qcbs.technical_score} commScore={qcbs.commercial_score} finalScore={qcbs.final_score} />
+                </div>
+              ) : (
+                <div className="p-4 bg-[#F8F6F1] rounded-lg border border-[#E8E2D5]">
+                  <TwoFacedScale techScore={88} commScore={92} finalScore={89.2} />
+                </div>
+              )}
 
               <SectionDivider label="Containment Note Requirement" />
 
@@ -173,6 +293,7 @@ export default function OfficerApplicationReviewPage() {
           </DocumentForm>
         )}
 
+        {/* ── Tab: Decision Readiness ────────────────── */}
         {activeTab === 'decision-readiness' && (
           <DocumentForm
             title="Phase 9: 6-Point Decision Readiness Gate"

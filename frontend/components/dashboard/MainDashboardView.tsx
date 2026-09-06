@@ -9,7 +9,9 @@ import {
   PageHeader, DataCard, MetricCard, StatusBadge, StickyNote, DocLinkButton, DocButton, DocRow, AlertStrip
 } from '@/components/shared/DesignSystem';
 import {
-  FileText, Activity, Zap, CheckCircle, Calendar, ArrowRight, FolderOpen
+  FileText, Activity, Zap, CheckCircle, ArrowRight, FolderOpen,
+  Send, User, Search, PenLine, ClipboardCheck, Scale, FlaskConical,
+  BarChart2, Users2, ScrollText, ShieldCheck, FileX2
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -162,7 +164,7 @@ export const MainDashboardView: React.FC<MainDashboardViewProps> = ({ role, onNa
               </div>
             ) : (
               <div className="px-5 py-10 text-center">
-                <div className="text-2xl mb-2">📄</div>
+                <FileX2 className="w-8 h-8 text-[#C4B9AE] mx-auto mb-2" />
                 <p className="text-sm text-[#A89F94] font-medium">No problem statements yet.</p>
               </div>
             )}
@@ -186,8 +188,8 @@ export const MainDashboardView: React.FC<MainDashboardViewProps> = ({ role, onNa
                   transition={{ duration: 0.25 }}
                   className="flex gap-3"
                 >
-                  <div className="w-6 h-6 rounded-full bg-[#F8F6F1] border border-[#E8E2D5] flex items-center justify-center text-xs shrink-0 mt-0.5">
-                    📜
+                  <div className="w-6 h-6 rounded-full bg-[#F8F6F1] border border-[#E8E2D5] flex items-center justify-center shrink-0 mt-0.5">
+                    <ScrollText className="w-3 h-3 text-[#A89F94]" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-[11px] font-semibold text-[#1A1A1A] truncate">{log.details}</div>
@@ -207,57 +209,57 @@ export const MainDashboardView: React.FC<MainDashboardViewProps> = ({ role, onNa
             <div className="space-y-2">
               {role === 'startup' && (
                 <>
-                  <DocLinkButton href="/startup/applications/new?ps_id=1" role="startup" size="sm" className="w-full justify-center">
-                    📝 Submit Proposal
+                  <DocLinkButton href="/startup/applications/new?ps_id=1" role="startup" size="sm" className="w-full justify-center" icon={<Send className="w-3 h-3" />}>
+                    Submit Proposal
                   </DocLinkButton>
-                  <DocLinkButton href="/startup/profile" variant="secondary" role="startup" size="sm" className="w-full justify-center">
-                    👤 Complete Profile
+                  <DocLinkButton href="/startup/profile" variant="secondary" role="startup" size="sm" className="w-full justify-center" icon={<User className="w-3 h-3" />}>
+                    Complete Profile
                   </DocLinkButton>
-                  <DocLinkButton href="/startup/discover" variant="ghost" size="sm" className="w-full justify-center">
-                    🔍 Browse Problem Statements
+                  <DocLinkButton href="/startup/discover" variant="ghost" size="sm" className="w-full justify-center" icon={<Search className="w-3 h-3" />}>
+                    Browse Problem Statements
                   </DocLinkButton>
                 </>
               )}
               {role === 'officer' && (
                 <>
-                  <DocLinkButton href="/officer/problem-statements/new" role="officer" size="sm" className="w-full justify-center">
-                    ✏️ Draft New PS
+                  <DocLinkButton href="/officer/problem-statements/new" role="officer" size="sm" className="w-full justify-center" icon={<PenLine className="w-3 h-3" />}>
+                    Draft New PS
                   </DocLinkButton>
-                  <DocLinkButton href="/officer/applications" variant="secondary" role="officer" size="sm" className="w-full justify-center">
-                    📋 Review Applications
+                  <DocLinkButton href="/officer/applications" variant="secondary" role="officer" size="sm" className="w-full justify-center" icon={<ClipboardCheck className="w-3 h-3" />}>
+                    Review Applications
                   </DocLinkButton>
                 </>
               )}
               {role === 'evaluator' && (
                 <>
-                  <DocLinkButton href="/evaluator/applications/1/score" role="evaluator" size="sm" className="w-full justify-center">
-                    ⚖️ Score Application
+                  <DocLinkButton href="/evaluator/applications/1/score" role="evaluator" size="sm" className="w-full justify-center" icon={<Scale className="w-3 h-3" />}>
+                    Score Application
                   </DocLinkButton>
-                  <DocLinkButton href="/evaluator/assigned" variant="secondary" role="evaluator" size="sm" className="w-full justify-center">
-                    📋 Assigned List
+                  <DocLinkButton href="/evaluator/assigned" variant="secondary" role="evaluator" size="sm" className="w-full justify-center" icon={<FileText className="w-3 h-3" />}>
+                    Assigned List
                   </DocLinkButton>
                 </>
               )}
               {role === 'independent-evaluator' && (
                 <>
-                  <DocLinkButton href="/independent-evaluator/applications/1/sandbox" role="independent-evaluator" size="sm" className="w-full justify-center">
-                    🧪 Sandbox Trial
+                  <DocLinkButton href="/independent-evaluator/applications/1/sandbox" role="independent-evaluator" size="sm" className="w-full justify-center" icon={<FlaskConical className="w-3 h-3" />}>
+                    Sandbox Trial
                   </DocLinkButton>
-                  <DocLinkButton href="/independent-evaluator/contracts/1/kpi-verdicts" variant="secondary" role="independent-evaluator" size="sm" className="w-full justify-center">
-                    📊 KPI Verdicts
+                  <DocLinkButton href="/independent-evaluator/contracts/1/kpi-verdicts" variant="secondary" role="independent-evaluator" size="sm" className="w-full justify-center" icon={<BarChart2 className="w-3 h-3" />}>
+                    KPI Verdicts
                   </DocLinkButton>
                 </>
               )}
               {role === 'admin' && (
                 <>
-                  <DocLinkButton href="/admin/users" role="admin" size="sm" className="w-full justify-center">
-                    👥 Manage Users
+                  <DocLinkButton href="/admin/users" role="admin" size="sm" className="w-full justify-center" icon={<Users2 className="w-3 h-3" />}>
+                    Manage Users
                   </DocLinkButton>
-                  <DocLinkButton href="/admin/audit-log" variant="secondary" role="admin" size="sm" className="w-full justify-center">
-                    📜 View Audit Log
+                  <DocLinkButton href="/admin/audit-log" variant="secondary" role="admin" size="sm" className="w-full justify-center" icon={<ScrollText className="w-3 h-3" />}>
+                    View Audit Log
                   </DocLinkButton>
-                  <DocLinkButton href="/admin/startups/compliance" variant="ghost" size="sm" className="w-full justify-center">
-                    🛡️ Compliance Queue
+                  <DocLinkButton href="/admin/startups/compliance" variant="ghost" size="sm" className="w-full justify-center" icon={<ShieldCheck className="w-3 h-3" />}>
+                    Compliance Queue
                   </DocLinkButton>
                 </>
               )}

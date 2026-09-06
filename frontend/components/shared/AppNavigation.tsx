@@ -72,7 +72,8 @@ export const AppNavbar: React.FC<AppNavigationProps> = ({ currentRole, onRoleCha
 
       {/* Right: role switcher + auth */}
       <div className="flex items-center gap-3 relative">
-        {/* Role switcher *            <div className="relative">
+        {/* Role switcher */}
+        <div className="relative">
           <button
             onClick={() => setRoleDropOpen(!roleDropOpen)}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer"
