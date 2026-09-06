@@ -698,11 +698,7 @@ const MatchingTab: React.FC<{ psId: number; canInvite: boolean }> = ({ psId, can
 
         {invite.error && (
           <div className="mt-3">
-            {invite.error.isNotFound ? (
-              <UnmountedRouterNotice router="invite" feature="Sending invites" />
-            ) : (
-              <AlertStrip type="error" title="Invite failed" message={invite.error.detail} />
-            )}
+            <AlertStrip type="error" title="Invite failed" message={invite.error.detail} />
           </div>
         )}
         {invite.success && (
@@ -719,12 +715,9 @@ const MatchingTab: React.FC<{ psId: number; canInvite: boolean }> = ({ psId, can
         />
 
         {invites.loading && <LoadingBlock label="Loading invites…" rows={2} />}
-        {invites.error &&
-          (invites.error.isNotFound ? (
-            <UnmountedRouterNotice router="invite" feature="Invites" />
-          ) : (
-            <ApiErrorState error={invites.error} onRetry={invites.refetch} />
-          ))}
+        {invites.error && (
+          <ApiErrorState error={invites.error} onRetry={invites.refetch} />
+        )}
 
         {invites.data && invites.data.length === 0 && (
           <EmptyState title="No invites sent" hint="Invite a matched startup from the panel above." />

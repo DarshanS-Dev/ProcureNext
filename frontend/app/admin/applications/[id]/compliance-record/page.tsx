@@ -20,7 +20,7 @@ import {
   PageHeader,
   StatusBadge,
 } from '@/components/shared/DesignSystem';
-import { PanelHeading } from '@/components/panels/ApplicationPanels';
+import { DecisionReadinessPanel, PanelHeading } from '@/components/panels/ApplicationPanels';
 import {
   ApiErrorState,
   EmptyState,
@@ -133,7 +133,7 @@ export default function ComplianceRecordPage() {
             { label: 'Applications', href: '/admin/applications' },
             { label: `#${appId}` },
           ]}
-        />
+        <DecisionReadinessPanel appId={appId} canViewCOI={true} />
 
         <DataCard>
           <PanelHeading
@@ -146,12 +146,9 @@ export default function ComplianceRecordPage() {
             records are never modified, so compiling again adds a new one.
           </p>
 
-          {generate.error &&
-            (generate.error.isNotFound ? (
-              <UnmountedRouterNotice router="compliance_record" feature="Compliance records" />
-            ) : (
-              <AlertStrip type="error" title="Not compiled" message={generate.error.detail} />
-            ))}
+          {generate.error && (
+            <AlertStrip type="error" title="Not compiled" message={generate.error.detail} />
+          )}
           {generate.success && <AlertStrip type="success" message={generate.success} />}
 
           <DocButton
@@ -175,12 +172,9 @@ export default function ComplianceRecordPage() {
         </DataCard>
 
         {records.loading && <LoadingBlock label="Loading records…" />}
-        {records.error &&
-          (records.error.isNotFound ? (
-            <UnmountedRouterNotice router="compliance_record" feature="Compliance records" />
-          ) : (
-            <ApiErrorState error={records.error} onRetry={records.refetch} />
-          ))}
+        {records.error && (
+          <ApiErrorState error={records.error} onRetry={records.refetch} />
+        )}
 
         {records.data && list.length === 0 && (
           <EmptyState

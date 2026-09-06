@@ -31,9 +31,10 @@ import {
   fmtDateTime,
   humanize,
 } from '@/components/shared/States';
-import { ApiError, api } from '@/lib/api/client';
+import { ApiError, api, orNull } from '@/lib/api/client';
 import { useMutation, useQuery } from '@/lib/hooks/useApi';
 import {
+  COIDeclarationRead,
   CertificationCheckEnum,
   KPIVerdictResultEnum,
   MilestoneStatusEnum,
@@ -472,7 +473,7 @@ export const ScoresPanel: React.FC<{ appId: number; showCompleteness?: boolean }
           // Weighted total, using each criterion's weight from /rubric-criteria.
           const weighted = list.reduce((sum, r) => {
             const w = criterionById.get(r.criterion_id)?.weight ?? 0;
-            return sum + r.score * w;
+            return sum + (r.score * w) / 100;
           }, 0);
 
           return (
@@ -738,6 +739,11 @@ export const ContainmentPlanPanel: React.FC<{ appId: number; canEdit?: boolean }
       {query.error?.isNotFound && !canEdit && (
         <EmptyState title="No containment plan filed yet" hint="The owning officer files this before selection." />
       )}
+      {query.error?.isNotFound && canEdit && !query.data && (
+        <p className="text-xs text-[#6B6560] mb-3">
+          No containment plan filed yet. Fill in the required fields below or use AI assist to generate a draft.
+        </p>
+      )}
 
       {!canEdit && query.data && (
         <div className="space-y-0">
@@ -820,12 +826,17 @@ export const DecisionReadinessPanel: React.FC<{
   appId: number;
   /** Officer only: enables the select-for-pilot action. */
   canSelect?: boolean;
+  /** Enables viewing the evaluator COI breakdown table (officers/admins). Decoupled from canSelect. */
+  canViewCOI?: boolean;
   onSelected?: () => void;
-}> = ({ appId, canSelect = false, onSelected }) => {
+}> = ({ appId, canSelect = false, canViewCOI, onSelected }) => {
   const query = useQuery(() => api.getDecisionReadiness(appId), [appId]);
+  const coiQuery = useQuery(() => orNull(api.getCOIDeclarations(appId)), [appId]);
   const select = useMutation();
 
   const ready = query.data?.overall_ready ?? false;
+  const showCOI = canViewCOI ?? canSelect;
+  const coiList: COIDeclarationRead[] = coiQuery.data ?? [];
 
   return (
     <DataCard>
@@ -874,6 +885,44 @@ export const DecisionReadinessPanel: React.FC<{
               );
             })}
           </div>
+
+          {showCOI && coiList.length > 0 && (
+            <div className="mt-4 space-y-2">
+              <SectionDivider label="Evaluator COI Status Breakdown" />
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="text-[10px] font-bold uppercase tracking-wider text-[#A89F94] text-left">
+                      <th className="pb-2 pr-3">Evaluator ID</th>
+                      <th className="pb-2 pr-3">Conflict Declared</th>
+                      <th className="pb-2 pr-3">Recused</th>
+                      <th className="pb-2 pr-3">Declared At</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#F1EDE4]">
+                    {coiList.map((coi) => (
+                      <tr key={coi.id}>
+                        <td className="py-2 pr-3 font-mono">User #{coi.evaluator_id}</td>
+                        <td className="py-2 pr-3">
+                          <StatusBadge
+                            status={coi.declared_conflict ? 'error' : 'success'}
+                            label={coi.declared_conflict ? 'Yes' : 'No'}
+                          />
+                        </td>
+                        <td className="py-2 pr-3">
+                          <StatusBadge
+                            status={coi.recused ? 'warning' : 'info'}
+                            label={coi.recused ? 'Recused' : 'Active'}
+                          />
+                        </td>
+                        <td className="py-2 pr-3 text-[#6B6560]">{fmtDateTime(coi.declared_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {canSelect && (
             <div className="mt-4 space-y-3">

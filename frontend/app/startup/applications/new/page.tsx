@@ -68,7 +68,7 @@ function NewApplicationForm() {
             implementation_timeline_weeks: timelineWeeks ? Number(timelineWeeks) : null,
           },
           commercial_proposal: {
-            bid_amount_inr: bidAmount ? Number(bidAmount) : null,
+            bid_amount: bidAmount ? Number(bidAmount) : null,
             payment_schedule: paymentSchedule || null,
             assumptions: assumptions || null,
           },
