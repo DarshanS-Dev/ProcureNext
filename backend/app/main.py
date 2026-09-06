@@ -6,6 +6,7 @@ from app.routers import (
     checklist,
     decision_readiness,
     evaluators,
+    matching,
     problem_statements,
     qcbs,
     risk_containment,
@@ -31,6 +32,7 @@ app.include_router(scoring.router)
 app.include_router(qcbs.router)
 app.include_router(risk_containment.router)
 app.include_router(decision_readiness.router)
+app.include_router(matching.router)
 
 # Not yet wired — Layer 5 (SandboxTrial, Contract, PilotMilestone, Evidence,
 # KPI verdicts, PilotOutcome) + Invite + ComplianceRecord are Teammate A's

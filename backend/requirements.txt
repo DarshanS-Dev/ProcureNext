@@ -10,3 +10,5 @@ passlib[bcrypt]
 python-multipart
 python-dotenv
 pyjwt
+chromadb
+sentence-transformers

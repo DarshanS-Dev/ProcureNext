@@ -610,3 +610,43 @@ class AuditLogRead(BaseModel):
     entity_id: int
     timestamp: datetime
     log_metadata: Optional[dict] = None
+
+
+# ============================================================
+# SEMANTIC MATCHING (Teammate B handoff — matching_service.py)
+# ============================================================
+
+class ProblemStatementMatchRead(ProblemStatementBase):
+    """
+    Response for GET /startup/problem-statements — one entry per published PS,
+    with a `recommended` flag layered on top of the normal PS fields.
+
+    # JUDGMENT CALL: extends ProblemStatementBase (not the full ProblemStatementRead)
+    # to avoid re-deriving is_locked_field_editable for a listing endpoint that
+    # has nothing to do with edit-locking — that field is specific to the
+    # officer-authoring view. If frontend wants it here too, promote this to
+    # extend ProblemStatementRead instead.
+    """
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    officer_id: int
+    status: PSStatusEnum
+    created_at: datetime
+    published_at: Optional[datetime] = None
+    commercial_unlocked_at: Optional[datetime] = None
+    recommended: bool  # True if this PS appeared in the startup's semantic match results
+
+
+class StartupMatchEntry(BaseModel):
+    """One row within the ranked list for GET /problem-statements/{id}/matches."""
+    startup_id: int
+    name: str
+    rank: int
+    recommended: bool  # True for rank 1 only (see judgment call in router)
+
+
+class PSMatchRankingRead(BaseModel):
+    """Standalone response wrapping the ranked startup-match list for a PS."""
+    problem_statement_id: int
+    matches: list[StartupMatchEntry]
