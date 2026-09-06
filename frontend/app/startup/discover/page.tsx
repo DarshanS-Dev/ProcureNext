@@ -1,140 +1,163 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+
+/**
+ * GET /startup/problem-statements — every published PS, each carrying a
+ * `recommended` flag set by the semantic matcher against this startup's Level 2
+ * description. Recommended matches are shown first.
+ */
+
+import React, { useMemo, useState } from 'react';
 import { AppLayout } from '@/components/shared/AppLayout';
-import { api } from '@/lib/api/client';
 import {
-  PageHeader, DataCard, StatusBadge, StickyNote, DocLinkButton,
-  DocButton, AlertStrip, DocRow
+  DataCard,
+  DocLinkButton,
+  DocSelect,
+  PageHeader,
+  StatusBadge,
 } from '@/components/shared/DesignSystem';
-import { ArrowRight, CheckCircle2, Send, FileX2 } from 'lucide-react';
+import { ApiErrorState, EmptyState, LoadingBlock, fmtDate, humanize } from '@/components/shared/States';
+import { api } from '@/lib/api/client';
+import { useQuery } from '@/lib/hooks/useApi';
+import { CATEGORY_VALUES, CategoryEnum } from '@/lib/types/api';
+import { ArrowRight, Sparkles } from 'lucide-react';
 
 export default function StartupDiscoverPage() {
-  const [openPs, setOpenPs] = useState<any[]>([]);
-  const [invites, setInvites] = useState<any[]>([]);
+  const psQuery = useQuery(() => api.getMatchedProblemStatements(), []);
+  const [category, setCategory] = useState<CategoryEnum | ''>('');
+  const [onlyRecommended, setOnlyRecommended] = useState(false);
 
-  useEffect(() => {
-    api.getMatchedProblemStatements().then((res) => {
-      if (Array.isArray(res)) setOpenPs(res);
-    }).catch(() => {});
+  const visible = useMemo(() => {
+    const rows = psQuery.data ?? [];
+    return rows
+      .filter((ps) => (category ? ps.category === category : true))
+      .filter((ps) => (onlyRecommended ? ps.recommended : true))
+      .slice()
+      // Recommended first, then newest.
+      .sort((a, b) => {
+        if (a.recommended !== b.recommended) return a.recommended ? -1 : 1;
+        return b.id - a.id;
+      });
+  }, [psQuery.data, category, onlyRecommended]);
 
-    api.getStartupInvites().then((res) => {
-      if (Array.isArray(res)) setInvites(res);
-    }).catch(() => {});
-  }, []);
+  const recommendedCount = (psQuery.data ?? []).filter((ps) => ps.recommended).length;
 
   return (
-    <AppLayout defaultRole="startup">
+    <AppLayout allow="startup">
       <div className="space-y-6">
         <PageHeader
-          title="Open Discovery & Invites Feed"
-          subtitle="Browse published Problem Statements and respond to targeted invitations."
-          phase="Phase 4 · Startup"
+          title="Discover Problem Statements"
+          subtitle="Every published problem statement. Ones matching your Level 2 capability description are flagged as recommended."
+          phase="Semantic matching"
           role="startup"
-          breadcrumb={[{ label: 'Startup', href: '/startup/dashboard' }, { label: 'Discover PS' }]}
-          actions={
-            <DocButton
-              variant="secondary"
-              role="startup"
-              onClick={() => setInviteSimulated(!inviteSimulated)}
-              icon={<Send className="w-3.5 h-3.5" />}
-            >
-              {inviteSimulated ? '✓ Invite Received' : 'Simulate Officer Invite (Phase 4.2)'}
-            </DocButton>
-          }
-          stickyNote={
-            <StickyNote color="blue" rotate={1} title="Matching Tip">
-              Complete Level 2 profile for better semantic match scoring.
-            </StickyNote>
-          }
+          breadcrumb={[{ label: 'Startup', href: '/startup/dashboard' }, { label: 'Discover' }]}
         />
 
-        {inviteSimulated && (
-          <AlertStrip type="success">
-            Event logged: <strong>startup_invited</strong> — Nodal Officer Vikram Malhotra sent a direct invite for PS #26137!
-          </AlertStrip>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="w-56">
+            <label className="text-[11px] font-bold text-[#6B6560] uppercase tracking-wider">
+              Category
+            </label>
+            <DocSelect
+              value={category}
+              onChange={(e) => setCategory(e.target.value as CategoryEnum | '')}
+            >
+              <option value="">All categories</option>
+              {CATEGORY_VALUES.map((c) => (
+                <option key={c} value={c}>
+                  {humanize(c)}
+                </option>
+              ))}
+            </DocSelect>
+          </div>
+
+          <label className="flex items-center gap-2 text-xs font-bold text-[#6B6560] cursor-pointer pb-2.5">
+            <input
+              type="checkbox"
+              checked={onlyRecommended}
+              onChange={(e) => setOnlyRecommended(e.target.checked)}
+              className="w-4 h-4 accent-[#1E9E5A] cursor-pointer"
+            />
+            Recommended only ({recommendedCount})
+          </label>
+        </div>
+
+        {psQuery.loading && <LoadingBlock label="Loading problem statements…" />}
+        {psQuery.error && <ApiErrorState error={psQuery.error} onRetry={psQuery.refetch} />}
+
+        {psQuery.data && visible.length === 0 && (
+          <EmptyState
+            title="No problem statements match"
+            hint={
+              psQuery.data.length === 0
+                ? 'Nothing has been published yet. Officers publish problem statements from their own workspace.'
+                : 'Try clearing the category filter or the recommended-only toggle.'
+            }
+          />
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {openPs.length === 0 && invites.length === 0 ? (
-            <div className="col-span-2 p-12 bg-white border border-[#EDE7DB] rounded-2xl text-center space-y-2">
-              <FileX2 className="w-8 h-8 text-[#A89F94] mx-auto" />
-              <div className="font-bold text-sm text-[#1A1A1A]">No published problem statements yet</div>
-              <div className="text-xs text-[#6B6560]">Procurement officers publish challenges here. Complete your Level 2 profile to receive recommendations and direct invites.</div>
-            </div>
-          ) : (
-            <>
-              {/* Open Discovery */}
-              {openPs.map((ps) => (
-                <DataCard key={ps.id} className="space-y-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <StatusBadge status="published" label={ps.recommended ? "Recommended Match" : "Open Discovery"} />
-                    <span className="font-mono text-[11px] text-[#A89F94]">PS #{ps.id}</span>
-                  </div>
+          {visible.map((ps) => (
+            <DataCard key={ps.id} className="space-y-4 flex flex-col">
+              <div className="flex items-start justify-between gap-2">
+                {ps.recommended ? (
+                  <span
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[11px] font-bold uppercase tracking-wide"
+                    style={{ backgroundColor: '#EAF7ED', color: '#1E9E5A', border: '1px solid #B8E6C4' }}
+                  >
+                    <Sparkles className="w-3 h-3" /> Recommended
+                  </span>
+                ) : (
+                  <StatusBadge status="published" label="Open" />
+                )}
+                <span className="font-mono text-[11px] text-[#A89F94] shrink-0">PS #{ps.id}</span>
+              </div>
 
-                  <div>
-                    <h2 className="text-sm font-bold text-[#1A1A1A] leading-snug">{ps.title}</h2>
-                    <p className="text-xs text-[#6B6560] mt-1">
-                      {ps.category || 'Defense & Technical Ops'} · Target: {ps.target_value || 'N/A'}
-                    </p>
-                  </div>
+              <div className="flex-1 space-y-1.5">
+                <h2 className="text-sm font-bold text-[#1A1A1A] leading-snug">{ps.title}</h2>
+                <p className="text-xs text-[#6B6560]">
+                  {humanize(ps.category)}
+                  {ps.budget_range ? ` · Budget ${humanize(ps.budget_range)}` : ''}
+                  {ps.published_at ? ` · Published ${fmtDate(ps.published_at)}` : ''}
+                </p>
+                {ps.description && (
+                  <p className="text-xs text-[#6B6560] leading-relaxed line-clamp-3">
+                    {ps.description}
+                  </p>
+                )}
+              </div>
 
-                  <div className="p-3 rounded-lg text-xs" style={{ backgroundColor: '#F8F6F1', border: '1px solid #E8E2D5' }}>
-                    <div className="text-[10px] font-bold uppercase text-[#A89F94] mb-0.5">Baseline Measurement</div>
-                    <div className="text-[#6B6560]">{ps.baseline_value || 'Initial baseline check required'}</div>
-                  </div>
+              <div
+                className="p-3 rounded-lg text-xs space-y-1"
+                style={{ backgroundColor: '#F8F6F1', border: '1px solid #E8E2D5' }}
+              >
+                <Field label="Baseline" value={ps.baseline} />
+                <Field label="Target" value={ps.target} />
+                <Field label="Measurement" value={ps.measurement_method} />
+              </div>
 
-                  <div className="flex items-center justify-between">
-                    <div className="text-[11px] font-bold" style={{ color: '#1E9E5A' }}>
-                      {ps.recommended ? 'High Semantic Match' : 'Open Challenge'}
-                    </div>
-                    <DocLinkButton
-                      href={`/startup/applications/new?ps_id=${ps.id}`}
-                      role="startup"
-                      size="sm"
-                      icon={<ArrowRight className="w-3 h-3" />}
-                    >
-                      Apply Now
-                    </DocLinkButton>
-                  </div>
-                </DataCard>
-              ))}
-
-              {/* Targeted Invites */}
-              {invites.map((inv) => (
-                <DataCard key={inv.id} className="space-y-4" style={{ border: '1.5px solid #F7E1B5' }}>
-                  <div className="flex items-start justify-between gap-2">
-                    <StatusBadge status="pending" label="Direct Invite" />
-                    <span className="font-mono text-[11px] text-[#A89F94]">PS #{inv.problem_statement_id}</span>
-                  </div>
-
-                  <div>
-                    <h2 className="text-sm font-bold text-[#1A1A1A] leading-snug">{inv.problem_statement_title || `Problem Statement #${inv.problem_statement_id}`}</h2>
-                  </div>
-
-                  <div className="p-3 rounded-lg text-xs" style={{ backgroundColor: '#FDF3DC', border: '1px solid #F7E1B5' }}>
-                    <span style={{ color: '#B8860B' }}>⚡ Directly invited based on DPIIT capability profile match.</span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="text-[11px] font-bold" style={{ color: '#B8860B' }}>
-                      Targeted Invite
-                    </div>
-                    <DocLinkButton
-                      href={`/startup/applications/new?ps_id=${inv.problem_statement_id}`}
-                      variant="secondary"
-                      role="officer"
-                      size="sm"
-                      icon={<ArrowRight className="w-3 h-3" />}
-                    >
-                      Accept & Submit
-                    </DocLinkButton>
-                  </div>
-                </DataCard>
-              ))}
-            </>
-          )}
+              <div className="flex items-center justify-end">
+                <DocLinkButton
+                  href={`/startup/applications/new?ps_id=${ps.id}`}
+                  role="startup"
+                  size="sm"
+                  icon={<ArrowRight className="w-3 h-3" />}
+                >
+                  Apply
+                </DocLinkButton>
+              </div>
+            </DataCard>
+          ))}
         </div>
       </div>
     </AppLayout>
   );
 }
+
+const Field: React.FC<{ label: string; value?: string | null }> = ({ label, value }) => (
+  <div className="flex gap-2">
+    <span className="text-[10px] font-bold uppercase text-[#A89F94] w-24 shrink-0 pt-0.5">
+      {label}
+    </span>
+    <span className="text-[#6B6560] flex-1">{value || '—'}</span>
+  </div>
+);

@@ -1,110 +1,96 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import { AppLayout } from '@/components/shared/AppLayout';
-import { api } from '@/lib/api/client';
-import {
-  PageHeader, DataCard, StatusBadge, StickyNote, DocLinkButton, DocRow, SectionDivider
-} from '@/components/shared/DesignSystem';
-import { ScrollText, Clock, Landmark, Scale, FlaskConical, Rocket, ShieldCheck as AdminIcon } from 'lucide-react';
-import { motion } from 'framer-motion';
 
-const ACTOR_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  admin:                  { bg: '#FBEAEC', text: '#C81E4A', border: '#F3BECA' },
-  officer:                { bg: '#FDF3DC', text: '#B8860B', border: '#F7E1B5' },
-  evaluator:              { bg: '#E9F1FB', text: '#2563EB', border: '#BFD7F8' },
-  'independent-evaluator':{ bg: '#FBEFE6', text: '#D2691E', border: '#F0CDB5' },
-  startup:                { bg: '#EAF7ED', text: '#1E9E5A', border: '#B8E6C4' },
-};
+/**
+ * Audit trail.
+ *
+ * There is genuinely nothing to call here. AuditLog rows are written as a
+ * side effect of other endpoints (audit_log_service.write_audit_log), and
+ * AuditLogRead exists in core_schemas.py — but no router anywhere in
+ * backend/app/routers exposes a read route for them. Not an unmounted router
+ * like the Layer 5 ones: the endpoint does not exist at all.
+ *
+ * Rather than fake a table, this page says so and states exactly what the
+ * backend would need. The compliance record is the closest thing that *is*
+ * reachable, so it points there.
+ */
+
+import React from 'react';
+import { AppLayout } from '@/components/shared/AppLayout';
+import { AlertStrip, DataCard, DocLinkButton, PageHeader } from '@/components/shared/DesignSystem';
+import { PanelHeading } from '@/components/panels/ApplicationPanels';
+
+const FIELDS = [
+  ['id', 'Row id'],
+  ['actor_id', 'Who did it (nullable for system actions)'],
+  ['action', 'What happened'],
+  ['entity_type', 'Which table it happened to'],
+  ['entity_id', 'Which row'],
+  ['timestamp', 'When'],
+  ['log_metadata', 'Free-form JSON context'],
+];
 
 export default function AdminAuditLogPage() {
-  const [auditLogs, setAuditLogs] = useState<any[]>([]);
-
-  useEffect(() => {
-    api.getAuditLogs().then((res) => {
-      if (Array.isArray(res)) {
-        setAuditLogs(res.map(l => ({
-          id: l.id,
-          action: l.action,
-          timestamp: l.timestamp ? new Date(l.timestamp).toISOString().replace('T', ' ').substring(0, 19) : '',
-          actor: l.actor_role || 'admin',
-          actorName: l.actor_name || `User #${l.actor_id}`,
-          details: l.details || `Entity: ${l.entity_type} #${l.entity_id}`,
-        })));
-      }
-    }).catch(() => {});
-  }, []);
   return (
-    <AppLayout defaultRole="admin">
-      <div className="space-y-6">
+    <AppLayout allow="admin">
+      <div className="space-y-6 max-w-4xl">
         <PageHeader
-          title="Global Audit Log Trail"
-          subtitle="Immutable chronological event stream for all platform state transitions."
-          phase="Phase 14 · Governance"
+          title="Audit Trail"
+          subtitle="Every write on the platform is logged — but the log has no read endpoint yet."
+          phase="Cross-cutting"
           role="admin"
-          breadcrumb={[{ label: 'Admin', href: '/admin/dashboard' }, { label: 'Audit Log' }]}
-          actions={
-            <StatusBadge status="info" label="Append-Only Log" dot={false} />
-          }
-          stickyNote={
-            <StickyNote color="pink" rotate={1} title="Immutable">
-              Every event is cryptographically sealed. No edits or deletions permitted.
-            </StickyNote>
-          }
+          breadcrumb={[{ label: 'Admin', href: '/admin/dashboard' }, { label: 'Audit trail' }]}
         />
 
-        <DataCard noPad>
-          <div className="px-5 py-4 border-b border-[#EDE7DB] flex items-center gap-2">
-            <ScrollText className="w-4 h-4 text-[#A89F94]" />
-            <h2 className="text-sm font-bold text-[#1A1A1A]">System State Transitions</h2>
-            <span className="ml-auto text-[11px] text-[#A89F94] font-mono">{auditLogs.length} events</span>
+        <AlertStrip type="warning" title="No endpoint to call">
+          <div className="space-y-1.5 leading-relaxed">
+            <p>
+              Audit rows are written server-side by{' '}
+              <code className="font-mono">audit_log_service.write_audit_log</code> as a
+              side effect of the endpoints that change data, and the response schema{' '}
+              <code className="font-mono">AuditLogRead</code> already exists. What is
+              missing is a route that returns them — nothing under{' '}
+              <code className="font-mono">backend/app/routers/</code> serves the audit
+              log, so unlike the Layer 5 screens this one cannot be switched on by
+              mounting a router.
+            </p>
+            <p>
+              A read route (admin-only, filterable by{' '}
+              <code className="font-mono">entity_type</code>,{' '}
+              <code className="font-mono">entity_id</code> and{' '}
+              <code className="font-mono">actor_id</code>) is all this page needs; the
+              client and types are already in place for it.
+            </p>
           </div>
+        </AlertStrip>
 
-          <div className="relative">
-            {/* Timeline vertical line */}
-            <div className="absolute left-9 top-0 bottom-0 w-px bg-[#EDE7DB]" />
-
-            {auditLogs.map((log, i) => {
-              const actorStyle = ACTOR_COLORS[log.actor] ?? ACTOR_COLORS.admin;
-              return (
-                <motion.div
-                  key={log.id}
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.04, duration: 0.25 }}
-                  className="flex gap-4 px-5 py-4 hover:bg-[#FDFBF7] transition-colors border-b border-[#EDE7DB] last:border-b-0"
-                >
-                  {/* Timeline dot */}
-                  <div className="relative z-10 shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: actorStyle.bg, border: `1.5px solid ${actorStyle.border}` }}>
-                    {{
-                      admin: <AdminIcon className="w-3.5 h-3.5" style={{ color: actorStyle.text }} />,
-                      officer: <Landmark className="w-3.5 h-3.5" style={{ color: actorStyle.text }} />,
-                      evaluator: <Scale className="w-3.5 h-3.5" style={{ color: actorStyle.text }} />,
-                      'independent-evaluator': <FlaskConical className="w-3.5 h-3.5" style={{ color: actorStyle.text }} />,
-                      startup: <Rocket className="w-3.5 h-3.5" style={{ color: actorStyle.text }} />,
-                    }[log.actor] ?? <ScrollText className="w-3.5 h-3.5" style={{ color: actorStyle.text }} />}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2 mb-0.5">
-                      <span className="font-mono text-[11px] font-bold text-[#1A1A1A]">{log.action}</span>
-                      <span
-                        className="text-[10px] font-bold px-2 py-0.5 rounded"
-                        style={{ backgroundColor: actorStyle.bg, color: actorStyle.text, border: `1px solid ${actorStyle.border}` }}
-                      >
-                        {log.actorName}
-                      </span>
-                    </div>
-                    <p className="text-xs text-[#6B6560] leading-relaxed">{log.details}</p>
-                    <div className="flex items-center gap-1 mt-1">
-                      <Clock className="w-3 h-3 text-[#C4B9AE]" />
-                      <span className="text-[10px] text-[#A89F94] font-mono">{log.timestamp}</span>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
+        <DataCard>
+          <PanelHeading title="What a row holds" endpoint="AuditLogRead — core_schemas.py" />
+          <div className="divide-y divide-[#F1EDE4]">
+            {FIELDS.map(([field, description]) => (
+              <div key={field} className="py-2.5 flex gap-3">
+                <span className="font-mono text-[11px] text-[#C81E4A] w-32 shrink-0 pt-0.5">
+                  {field}
+                </span>
+                <span className="text-xs text-[#6B6560]">{description}</span>
+              </div>
+            ))}
           </div>
+        </DataCard>
+
+        <DataCard>
+          <PanelHeading
+            title="What you can see today"
+            endpoint="GET /admin/applications/{id}/compliance-records"
+          />
+          <p className="text-xs text-[#6B6560] mb-3">
+            A compliance record is the audit-grade artefact that <em>is</em> reachable:
+            a sealed snapshot of everything on record for one application at the moment
+            it was compiled — eligibility, checklist, scores, QCBS, risk, containment
+            and the pilot trail.
+          </p>
+          <DocLinkButton href="/admin/applications" role="admin" size="sm">
+            Go to applications
+          </DocLinkButton>
         </DataCard>
       </div>
     </AppLayout>

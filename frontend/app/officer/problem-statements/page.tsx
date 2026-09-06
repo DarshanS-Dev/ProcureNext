@@ -1,85 +1,195 @@
 'use client';
-import React from 'react';
+
+/**
+ * GET /problem-statements — the list is global for any authenticated user, so
+ * the officer's own statements are separated out client-side by officer_id from
+ * the JWT. Publish and close act directly from the row.
+ */
+
+import React, { useState } from 'react';
 import { AppLayout } from '@/components/shared/AppLayout';
 import {
-  PageHeader, DataCard, StatusBadge, StickyNote, DocLinkButton, DocRow
+  AlertStrip,
+  DocButton,
+  DocLinkButton,
+  DocSelect,
+  DocumentForm,
+  PageHeader,
+  StatusBadge,
 } from '@/components/shared/DesignSystem';
-import { FileText } from 'lucide-react';
-
-const PS_LIST = [
-  {
-    id: 26136,
-    title: 'Autonomous Thermal Surveillance Drones',
-    category: 'Defense & Aerospace Systems',
-    budget: '$450,000',
-    deadline: '2024-10-15',
-    status: 'published' as const,
-    apps: 12,
-  },
-  {
-    id: 26137,
-    title: 'Border Perimeter AI Sensor Grid',
-    category: 'Cybersecurity & Critical Infrastructure',
-    budget: '$300,000',
-    deadline: '2024-10-22',
-    status: 'published' as const,
-    apps: 8,
-  },
-];
+import { ApiErrorState, EmptyState, LoadingBlock, fmtDate, humanize } from '@/components/shared/States';
+import { api } from '@/lib/api/client';
+import { useMutation, useQuery } from '@/lib/hooks/useApi';
+import { useSession } from '@/lib/auth/session';
+import { PSStatusEnum } from '@/lib/types/api';
+import { ArrowRight, PlusCircle } from 'lucide-react';
 
 export default function OfficerProblemStatementsPage() {
+  const session = useSession();
+  const psQuery = useQuery(() => api.getProblemStatements(), []);
+  const action = useMutation();
+
+  const [scope, setScope] = useState<'mine' | 'all'>('mine');
+  const [status, setStatus] = useState<PSStatusEnum | ''>('');
+
+  const rows = (psQuery.data ?? [])
+    .filter((ps) => (scope === 'mine' && session ? ps.officer_id === session.userId : true))
+    .filter((ps) => (status ? ps.status === status : true))
+    .slice()
+    .sort((a, b) => b.id - a.id);
+
   return (
-    <AppLayout defaultRole="officer">
+    <AppLayout allow="officer">
       <div className="space-y-6">
         <PageHeader
-          title="Problem Statements Registry"
-          subtitle="Published procurement challenges for Cycle 2024 Q3."
-          phase="Phase 3 · Officer"
+          title="Problem Statements"
+          subtitle="Draft, publish and close the challenges startups bid against."
+          phase="Layer 2 · Problem statement"
           role="officer"
-          breadcrumb={[{ label: 'Officer', href: '/officer/dashboard' }, { label: 'Problem Statements' }]}
+          breadcrumb={[{ label: 'Officer', href: '/officer/dashboard' }, { label: 'Problem statements' }]}
           actions={
-            <DocLinkButton href="/officer/problem-statements/new" role="officer" icon={<FileText className="w-3.5 h-3.5" />}>
-              + New Problem Statement
+            <DocLinkButton
+              href="/officer/problem-statements/new"
+              role="officer"
+              size="sm"
+              icon={<PlusCircle className="w-3.5 h-3.5" />}
+            >
+              New problem statement
             </DocLinkButton>
-          }
-          stickyNote={
-            <StickyNote color="yellow" rotate={-1} title="Publishing Rule">
-              Only outcome-based, baseline-gated PS can be published.
-            </StickyNote>
           }
         />
 
-        <DataCard noPad>
-          <div className="px-5 py-4 border-b border-[#EDE7DB] flex items-center justify-between">
-            <h2 className="text-sm font-bold text-[#1A1A1A]">Published Registry</h2>
-            <span className="text-[11px] text-[#A89F94] font-mono">{PS_LIST.length} entries</span>
+        <div className="flex flex-wrap gap-3">
+          <div className="w-48">
+            <label className="text-[11px] font-bold text-[#6B6560] uppercase tracking-wider">
+              Scope
+            </label>
+            <DocSelect value={scope} onChange={(e) => setScope(e.target.value as 'mine' | 'all')}>
+              <option value="mine">Mine only</option>
+              <option value="all">All officers</option>
+            </DocSelect>
           </div>
+          <div className="w-48">
+            <label className="text-[11px] font-bold text-[#6B6560] uppercase tracking-wider">
+              Status
+            </label>
+            <DocSelect value={status} onChange={(e) => setStatus(e.target.value as PSStatusEnum | '')}>
+              <option value="">All statuses</option>
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+              <option value="closed">Closed</option>
+            </DocSelect>
+          </div>
+        </div>
 
-          {PS_LIST.map((ps) => (
-            <DocRow
-              key={ps.id}
-              refNum={`PS #${ps.id}`}
-              title={ps.title}
-              subtitle={`${ps.category} · Budget Pool: ${ps.budget} · Deadline: ${ps.deadline}`}
-              badge={
-                <>
-                  <StatusBadge status={ps.status} />
-                  <span className="text-[11px] text-[#A89F94]">{ps.apps} applications</span>
-                </>
-              }
-              actions={
-                <DocLinkButton
-                  href={`/officer/applications/1`}
-                  variant="secondary"
-                  role="officer"
-                  size="sm"
-                >
-                  View Queue →
-                </DocLinkButton>
-              }
-            />
-          ))}
-        </DataCard>
+        {action.error && <AlertStrip type="error" title="Action failed" message={action.error.detail} />}
+        {action.success && <AlertStrip type="success" message={action.success} />}
+
+        {(psQuery.loading || !session) && <LoadingBlock label="Loading problem statements…" />}
+        {psQuery.error && <ApiErrorState error={psQuery.error} onRetry={psQuery.refetch} />}
+
+        {psQuery.data && rows.length === 0 && (
+          <EmptyState
+            title={scope === 'mine' ? 'You have not created any yet' : 'Nothing matches these filters'}
+            hint="A problem statement starts as a draft. Publishing it is what opens it to applications."
+            action={
+              <DocLinkButton href="/officer/problem-statements/new" role="officer" size="sm">
+                Create the first one
+              </DocLinkButton>
+            }
+          />
+        )}
+
+        {rows.length > 0 && (
+          <DocumentForm
+            title="Problem Statement Register"
+            subtitle="GET /problem-statements"
+            refNumber="PS-REG"
+            role="officer"
+          >
+            <div className="pt-2 divide-y divide-[#EDE7DB]">
+              {rows.map((ps) => {
+                const isMine = session?.userId === ps.officer_id;
+                return (
+                  <div
+                    key={ps.id}
+                    className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 py-4"
+                  >
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <StatusBadge status={ps.status} />
+                        <span className="font-mono text-[11px] text-[#A89F94]">PS #{ps.id}</span>
+                        {!isMine && (
+                          <span className="text-[10px] font-bold uppercase text-[#A89F94]">
+                            Officer #{ps.officer_id}
+                          </span>
+                        )}
+                        {!ps.is_locked_field_editable && (
+                          <span
+                            className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded"
+                            style={{ backgroundColor: '#FDF3DC', color: '#B8860B' }}
+                            title="Applications exist, so the locked fields can no longer change"
+                          >
+                            Fields locked
+                          </span>
+                        )}
+                      </div>
+                      <div className="font-bold text-sm text-[#1A1A1A]">{ps.title}</div>
+                      <div className="text-[11px] text-[#6B6560]">
+                        {humanize(ps.category)}
+                        {ps.budget_range ? ` · ${humanize(ps.budget_range)}` : ''} · Created{' '}
+                        {fmtDate(ps.created_at)}
+                        {ps.published_at ? ` · Published ${fmtDate(ps.published_at)}` : ''}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      {isMine && ps.status === 'draft' && (
+                        <DocButton
+                          size="sm"
+                          variant="secondary"
+                          role="officer"
+                          disabled={action.pending}
+                          onClick={() =>
+                            action.run(() => api.publishProblemStatement(ps.id), {
+                              successMessage: `PS #${ps.id} published.`,
+                              onSuccess: () => psQuery.refetch(),
+                            })
+                          }
+                        >
+                          Publish
+                        </DocButton>
+                      )}
+                      {isMine && ps.status === 'published' && (
+                        <DocButton
+                          size="sm"
+                          variant="danger"
+                          disabled={action.pending}
+                          onClick={() =>
+                            action.run(() => api.closeProblemStatement(ps.id), {
+                              successMessage: `PS #${ps.id} closed.`,
+                              onSuccess: () => psQuery.refetch(),
+                            })
+                          }
+                        >
+                          Close
+                        </DocButton>
+                      )}
+                      <DocLinkButton
+                        href={`/officer/problem-statements/${ps.id}`}
+                        role="officer"
+                        size="sm"
+                        icon={<ArrowRight className="w-3 h-3" />}
+                      >
+                        Open
+                      </DocLinkButton>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </DocumentForm>
+        )}
       </div>
     </AppLayout>
   );

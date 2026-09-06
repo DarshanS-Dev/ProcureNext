@@ -1,80 +1,116 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+
+/**
+ * GET /startup/invites — direct invitations from officers.
+ *
+ * InviteRead carries only ids, so problem statement titles are joined in from
+ * GET /problem-statements (readable by any authenticated user).
+ */
+
+import React from 'react';
 import { AppLayout } from '@/components/shared/AppLayout';
-import { api } from '@/lib/api/client';
 import {
-  PageHeader, DocumentForm, DataCard, StatusBadge, StickyNote, DocLinkButton, DocRow
+  DocLinkButton,
+  DocumentForm,
+  PageHeader,
+  StatusBadge,
 } from '@/components/shared/DesignSystem';
-import { UserRole } from '@/lib/types/api';
-import { Mail, ArrowRight, FileX2 } from 'lucide-react';
+import {
+  ApiErrorState,
+  EmptyState,
+  LoadingBlock,
+  UnmountedRouterNotice,
+  fmtDateTime,
+  humanize,
+} from '@/components/shared/States';
+import { api } from '@/lib/api/client';
+import { useQuery } from '@/lib/hooks/useApi';
+import { ArrowRight } from 'lucide-react';
 
 export default function StartupInvitesPage() {
-  const [invites, setInvites] = useState<any[]>([]);
+  const invitesQuery = useQuery(() => api.getMyInvites(), []);
+  const psQuery = useQuery(() => api.getProblemStatements(), []);
 
-  useEffect(() => {
-    api.getStartupInvites().then((res) => {
-      if (Array.isArray(res)) setInvites(res);
-    }).catch(() => {});
-  }, []);
+  const psById = new Map((psQuery.data ?? []).map((ps) => [ps.id, ps]));
 
   return (
-    <AppLayout defaultRole={UserRole.STARTUP}>
+    <AppLayout allow="startup">
       <div className="space-y-6 max-w-5xl">
         <PageHeader
-          title="Direct Problem Statement Invites Feed"
-          subtitle="Phase 4.3 — Direct Invites from Procurement Officers"
-          role={UserRole.STARTUP}
-          stickyNote={
-            <StickyNote color="mint" title="Direct Invites">
-              Targeted invites issued by Nodal Officers based on high semantic match with your DPIIT capability profile.
-            </StickyNote>
-          }
+          title="Direct Invites"
+          subtitle="Problem statements an officer invited you to bid on."
+          phase="Invite"
+          role="startup"
+          breadcrumb={[{ label: 'Startup', href: '/startup/dashboard' }, { label: 'Invites' }]}
         />
 
-        <DocumentForm
-          title="Received Procurement Invites"
-          subtitle="Targeted Opportunity Docket"
-          refNumber="INV-DOK-2024"
-          role={UserRole.STARTUP}
-          watermark="INVITE"
-        >
-          <div className="pt-2">
-            {invites.length === 0 ? (
-              <div className="p-8 text-center space-y-2">
-                <FileX2 className="w-8 h-8 text-[#A89F94] mx-auto" />
-                <div className="font-bold text-sm text-[#1A1A1A]">No direct invites received yet</div>
-                <div className="text-xs text-[#6B6560]">Officers send direct invites based on semantic capability match. Complete your Level 2 profile to boost visibility.</div>
-              </div>
-            ) : (
-              invites.map((inv) => (
-                <DocRow key={inv.id} hover={false} className="flex justify-between items-center py-3">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <StatusBadge status="verified" label="Targeted Invite" />
-                      <span className="font-mono text-[11px] text-[#A89F94]">PS #{inv.problem_statement_id}</span>
-                    </div>
-                    <div className="font-bold text-base text-[#1A1A1A]">
-                      {inv.problem_statement_title || `Problem Statement #${inv.problem_statement_id}`}
-                    </div>
-                    <div className="text-[11px] font-mono text-[#6B6560]">
-                      Invited by Nodal Officer ID #{inv.invited_by || 'Officer'}
-                    </div>
-                  </div>
+        {invitesQuery.loading && <LoadingBlock label="Loading invites…" />}
 
-                  <DocLinkButton
-                    href={`/startup/applications/new?ps_id=${inv.problem_statement_id}`}
-                    variant="primary"
-                    role={UserRole.STARTUP}
-                    size="md"
-                    icon={<ArrowRight className="w-3.5 h-3.5" />}
+        {invitesQuery.error &&
+          (invitesQuery.error.isNotFound ? (
+            <UnmountedRouterNotice router="invite" feature="Direct invites" />
+          ) : (
+            <ApiErrorState error={invitesQuery.error} onRetry={invitesQuery.refetch} />
+          ))}
+
+        {invitesQuery.data && invitesQuery.data.length === 0 && (
+          <EmptyState
+            title="No invites yet"
+            hint="Officers send targeted invites based on semantic match with your Level 2 capability description. You can still apply to anything published from Discover."
+            action={
+              <DocLinkButton href="/startup/discover" role="startup" size="sm">
+                Browse open problem statements
+              </DocLinkButton>
+            }
+          />
+        )}
+
+        {invitesQuery.data && invitesQuery.data.length > 0 && (
+          <DocumentForm
+            title="Received Invites"
+            subtitle="GET /startup/invites"
+            refNumber="INV-REG"
+            role="startup"
+          >
+            <div className="pt-2 divide-y divide-[#EDE7DB]">
+              {invitesQuery.data.map((inv) => {
+                const ps = psById.get(inv.problem_statement_id);
+                return (
+                  <div
+                    key={inv.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-4"
                   >
-                    Submit Invited Proposal
-                  </DocLinkButton>
-                </DocRow>
-              ))
-            )}
-          </div>
-        </DocumentForm>
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <StatusBadge status="info" label="Invited" />
+                        <span className="font-mono text-[11px] text-[#A89F94]">
+                          PS #{inv.problem_statement_id}
+                        </span>
+                        {ps && <StatusBadge status={ps.status} />}
+                      </div>
+                      <div className="font-bold text-sm text-[#1A1A1A]">
+                        {ps ? ps.title : `Problem statement #${inv.problem_statement_id}`}
+                      </div>
+                      <div className="text-[11px] text-[#6B6560]">
+                        {ps ? `${humanize(ps.category)} · ` : ''}
+                        Invited {fmtDateTime(inv.invited_at)}
+                      </div>
+                    </div>
+
+                    <DocLinkButton
+                      href={`/startup/applications/new?ps_id=${inv.problem_statement_id}`}
+                      role="startup"
+                      size="sm"
+                      icon={<ArrowRight className="w-3.5 h-3.5" />}
+                    >
+                      Apply
+                    </DocLinkButton>
+                  </div>
+                );
+              })}
+            </div>
+          </DocumentForm>
+        )}
       </div>
     </AppLayout>
   );
