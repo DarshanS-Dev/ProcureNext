@@ -200,7 +200,7 @@ def close_problem_statement(
 # ============================================================
 
 @router.post("/problem-statements/{ps_id}/ai-assist", response_model=ProblemStatementAiAssistResponse)
-def ai_assist(
+async def ai_assist(
     ps_id: int,
     payload: ProblemStatementAiAssistRequest,
     current_user: User = Depends(require_role(RoleEnum.officer)),
@@ -208,9 +208,13 @@ def ai_assist(
 ):
     """POST /problem-statements/{id}/ai-assist — officer-owner, advisory only,
     never writes/blocks. Ownership of ps_id is not separately re-validated here
-    (ai_assist_draft takes no PS-scoped DB action for MVP — see service docstring);
-    left for a follow-up pass if that changes once Teammate B's handoff lands."""
-    return problem_statement_service.ai_assist_draft(payload.rough_text)
+    (ai_assist_draft takes no PS-scoped DB action — see service docstring).
+
+    WIRED (this session): now `async def` + awaits the service call, since
+    problem_statement_service.ai_assist_draft() is a real async LLM call as
+    of Teammate B's handoff, not the old unimplemented `...` seam.
+    """
+    return await problem_statement_service.ai_assist_draft(payload.rough_text)
 
 
 # ============================================================
