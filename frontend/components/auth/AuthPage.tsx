@@ -251,7 +251,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           </div>
 
           {/* Credentials */}
-          <div className="lg:col-span-7 flex flex-col justify-between space-y-6">
+          <div className="lg:col-span-7 flex flex-col space-y-6">
             <div className="flex items-center justify-between border-b border-gray-200 pb-4">
               <div className="flex bg-[#F7F6F2] p-1 rounded-2xl border border-black/20">
                 {(['login', 'signup'] as const).map((m) => (
