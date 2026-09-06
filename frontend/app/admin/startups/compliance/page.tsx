@@ -1,126 +1,205 @@
 'use client';
+
+/**
+ * GET  /admin/startups?compliance_status=unverified
+ * POST /admin/startups/{user_id}/verify-compliance
+ *
+ * Verification is a single pass: all four fields go together in one request,
+ * and doing it is what unblocks the startup from applying at all.
+ */
+
 import React, { useState } from 'react';
 import { AppLayout } from '@/components/shared/AppLayout';
 import {
-  PageHeader, DocumentForm, DataCard, StatusBadge, StickyNote, DocButton, DocRow, AlertStrip
+  AlertStrip,
+  DataCard,
+  DocButton,
+  DocSelect,
+  PageHeader,
+  StatusBadge,
 } from '@/components/shared/DesignSystem';
-import { UserRole } from '@/lib/types/api';
-import { ShieldCheck, CheckCircle2, Lock, ShieldAlert } from 'lucide-react';
+import { ApiErrorState, EmptyState, LoadingBlock, humanize } from '@/components/shared/States';
+import { api } from '@/lib/api/client';
+import { useMutation, useQuery } from '@/lib/hooks/useApi';
+import { DpiitStatusEnum, StartupProfileRead } from '@/lib/types/api';
+import { ShieldCheck } from 'lucide-react';
 
-export default function AdminCompliancePage() {
-  const [queue, setQueue] = useState<any[]>([]);
+interface Draft {
+  dpiit_status: DpiitStatusEnum;
+  entity_verified: boolean;
+  pan_verified: boolean;
+  gst_verified: boolean;
+}
 
-  const [verifiedList, setVerifiedList] = useState<string[]>([]);
-  const [ruleMessage, setRuleMessage] = useState<string | null>(null);
+export default function AdminComplianceQueuePage() {
+  const query = useQuery(() => api.getUnverifiedStartups(), []);
+  const verify = useMutation();
+  const [drafts, setDrafts] = useState<Record<number, Draft>>({});
 
-  const handleVerify = (id: number, name: string) => {
-    setQueue(queue.filter(s => s.id !== id));
-    setVerifiedList([...verifiedList, name]);
-  };
+  const draftFor = (p: StartupProfileRead): Draft =>
+    drafts[p.user_id] ?? {
+      dpiit_status: p.dpiit_status,
+      entity_verified: p.entity_verified,
+      pan_verified: p.pan_verified,
+      gst_verified: p.gst_verified,
+    };
+
+  const setDraft = (userId: number, patch: Partial<Draft>, current: Draft) =>
+    setDrafts((d) => ({ ...d, [userId]: { ...current, ...patch } }));
 
   return (
-    <AppLayout defaultRole={UserRole.ADMIN}>
-      <div className="space-y-6 max-w-5xl">
+    <AppLayout allow="admin">
+      <div className="space-y-6">
         <PageHeader
-          title="Startup Compliance Queue"
-          subtitle='Phase 2 — Admin Single-Pass Verification & "Once-Only" Rule Test'
-          role={UserRole.ADMIN}
-          stickyNote={
-            <StickyNote color="pink" title="Once-Only Rule">
-              Rule 2.3: Verification applies globally across all problem statements. No per-application re-verification is allowed.
-            </StickyNote>
-          }
+          title="Compliance Queue"
+          subtitle="Startups awaiting verification. Until this is done they cannot submit an application."
+          phase="Layer 1 · Actors"
+          role="admin"
+          breadcrumb={[{ label: 'Admin', href: '/admin/dashboard' }, { label: 'Compliance' }]}
         />
 
-        {ruleMessage && (
-          <AlertStrip
-            type="info"
-            title="Rule 2.3 Enforced"
-            message={ruleMessage}
+        <AlertStrip
+          type="info"
+          title="One pass, four fields"
+          message="DPIIT status, entity, PAN and GST are submitted together — the endpoint takes all four at once. Check the submitted registration details against the source registries before verifying."
+        />
+
+        {verify.error && (
+          <AlertStrip type="error" title="Verification failed" message={verify.error.detail} />
+        )}
+        {verify.success && <AlertStrip type="success" message={verify.success} />}
+
+        {query.loading && <LoadingBlock label="Loading queue…" />}
+        {query.error && <ApiErrorState error={query.error} onRetry={query.refetch} />}
+
+        {query.data && query.data.length === 0 && (
+          <EmptyState
+            title="Queue is clear"
+            hint="Every startup profile on the platform has been through compliance verification."
           />
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <DocumentForm
-            title="Unverified Compliance Queue"
-            subtitle="Single-Pass Check Register"
-            refNumber={`QUE-${queue.length}`}
-            role={UserRole.ADMIN}
-            watermark="VERIFY"
-          >
-            {queue.length === 0 ? (
-              <AlertStrip type="success" title="Queue Cleared" message="All startups in queue verified!" />
-            ) : (
-              <div className="space-y-3 pt-2">
-                {queue.map((s) => (
-                  <DocRow key={s.id} hover={false} className="space-y-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="font-bold text-sm text-[#1A1A1A]">{s.name}</div>
-                        <div className="text-[11px] font-mono text-[#6B6560]">{s.dpiit}</div>
-                      </div>
-                      <StatusBadge status="pending" label="UNVERIFIED" />
+        <div className="space-y-4">
+          {(query.data ?? []).map((profile) => {
+            const draft = draftFor(profile);
+            return (
+              <DataCard key={profile.user_id} className="space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-bold text-[#1A1A1A]">
+                      Startup user #{profile.user_id}
                     </div>
-
-                    <div className="flex gap-3 text-[11px] text-[#1E9E5A] font-medium">
-                      <span>{s.panGst}</span>
-                      <span>•</span>
-                      <span>{s.entityValid}</span>
+                    <div className="text-[11px] text-[#6B6560]">
+                      {profile.entity_type || 'Entity type not stated'}
+                      {profile.stage ? ` · ${profile.stage}` : ''}
                     </div>
-
-                    <DocButton
-                      variant="primary"
-                      role={UserRole.ADMIN}
-                      size="sm"
-                      className="w-full"
-                      icon={<ShieldCheck className="w-3.5 h-3.5" />}
-                      onClick={() => handleVerify(s.id, s.name)}
-                    >
-                      Verify Compliance (Single Pass 4-Field Check)
-                    </DocButton>
-                  </DocRow>
-                ))}
-              </div>
-            )}
-          </DocumentForm>
-
-          <DocumentForm
-            title="Verified Startups Directory"
-            subtitle="Global Registration Compliance Register"
-            role={UserRole.ADMIN}
-          >
-            <div className="space-y-4 pt-2">
-              <div className="p-4 bg-[#F8F6F1] rounded-lg border border-[#E8E2D5] text-xs space-y-2">
-                <div className="text-[#6B6560] font-bold uppercase tracking-wider text-[10px]">Rule 2.3 Verification Gate Check:</div>
-                <p className="text-[#1A1A1A] leading-relaxed">
-                  Confirm there is no per-application re-verification button. Once verified here at startup registration level, status applies globally across all problem statement applications.
-                </p>
-                <DocButton
-                  variant="secondary"
-                  role={UserRole.ADMIN}
-                  size="sm"
-                  icon={<Lock className="w-3.5 h-3.5" />}
-                  onClick={() => setRuleMessage('Verified Rule 2.3: Per-application re-verification is disabled. Global status enforced.')}
-                >
-                  Test "Once Only" Rule Lock
-                </DocButton>
-              </div>
-
-              {verifiedList.length > 0 && (
-                <div className="space-y-2">
-                  <div className="text-[10px] font-bold text-[#A89F94] uppercase tracking-wider">Recently Verified</div>
-                  {verifiedList.map((name, i) => (
-                    <DocRow key={i} hover={false} className="flex justify-between items-center py-2">
-                      <span className="font-bold text-xs text-[#1A1A1A]">{name}</span>
-                      <StatusBadge status="verified" label="Global Valid" />
-                    </DocRow>
-                  ))}
+                  </div>
+                  <StatusBadge status="pending" label="Unverified" />
                 </div>
-              )}
-            </div>
-          </DocumentForm>
+
+                <div
+                  className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 p-3 rounded-lg text-xs"
+                  style={{ backgroundColor: '#F8F6F1', border: '1px solid #E8E2D5' }}
+                >
+                  <Submitted label="DPIIT number" value={profile.dpiit_number} />
+                  <Submitted label="PAN" value={profile.pan} />
+                  <Submitted label="GST" value={profile.gst} />
+                  <Submitted label="Website" value={profile.website} />
+                  <Submitted label="Address" value={profile.address} />
+                  <Submitted
+                    label="Sector tags"
+                    value={(profile.sector_tags ?? []).join(', ') || null}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <label className="space-y-1 block">
+                    <span className="text-[11px] font-bold text-[#6B6560] uppercase tracking-wider">
+                      DPIIT status
+                    </span>
+                    <DocSelect
+                      value={draft.dpiit_status}
+                      onChange={(e) =>
+                        setDraft(
+                          profile.user_id,
+                          { dpiit_status: e.target.value as DpiitStatusEnum },
+                          draft,
+                        )
+                      }
+                    >
+                      <option value="unverified">Unverified</option>
+                      <option value="verified">Verified</option>
+                      <option value="failed">Failed</option>
+                    </DocSelect>
+                  </label>
+
+                  <div className="space-y-2">
+                    <span className="text-[11px] font-bold text-[#6B6560] uppercase tracking-wider block">
+                      Document checks
+                    </span>
+                    {(
+                      [
+                        ['entity_verified', 'Entity verified'],
+                        ['pan_verified', 'PAN verified'],
+                        ['gst_verified', 'GST verified'],
+                      ] as [keyof Draft, string][]
+                    ).map(([key, label]) => (
+                      <label
+                        key={key}
+                        className="flex items-center gap-2 text-xs font-medium text-[#1A1A1A] cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={Boolean(draft[key])}
+                          onChange={(e) =>
+                            setDraft(profile.user_id, { [key]: e.target.checked } as Partial<Draft>, draft)
+                          }
+                          className="w-4 h-4 accent-[#C81E4A] cursor-pointer"
+                        />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <DocButton
+                  size="sm"
+                  variant="primary"
+                  role="admin"
+                  loading={verify.pending}
+                  icon={<ShieldCheck className="w-3 h-3" />}
+                  onClick={() =>
+                    verify.run(() => api.verifyStartupCompliance(profile.user_id, draft), {
+                      successMessage: `Compliance recorded for startup #${profile.user_id}.`,
+                      onSuccess: () => query.refetch(),
+                    })
+                  }
+                >
+                  Record verification
+                </DocButton>
+
+                {draft.dpiit_status !== 'verified' && (
+                  <p className="text-[11px] text-[#A89F94] italic">
+                    Recording anything other than a verified DPIIT status leaves this
+                    startup blocked from applying, which may be the correct outcome.
+                  </p>
+                )}
+              </DataCard>
+            );
+          })}
         </div>
       </div>
     </AppLayout>
   );
 }
+
+const Submitted: React.FC<{ label: string; value?: string | null }> = ({ label, value }) => (
+  <div className="flex gap-2">
+    <span className="text-[10px] font-bold uppercase text-[#A89F94] w-28 shrink-0 pt-0.5">
+      {label}
+    </span>
+    <span className="text-[#1A1A1A] font-medium flex-1 break-words">
+      {value || <span className="text-[#A89F94] italic">Not provided</span>}
+    </span>
+  </div>
+);

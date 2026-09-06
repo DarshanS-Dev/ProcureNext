@@ -1,132 +1,173 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import { AppLayout } from '@/components/shared/AppLayout';
-import { PipelineStepper } from '@/components/shared/PipelineStepper';
-import {
-  PageHeader, DocumentForm, DataCard, StatusBadge, StickyNote, DocButton, DocRow
-} from '@/components/shared/DesignSystem';
-import { UserRole } from '@/lib/types/api';
-import { api } from '@/lib/api/client';
-import { Upload, CheckCircle2, FileText } from 'lucide-react';
+
+/**
+ * One application, from the startup's side.
+ *
+ * Everything the startup is allowed to see or do against this application lives
+ * here: the proposal itself, the eligibility snapshot, the document checklist
+ * (the one thing they write to at this stage), the sandbox trial, and — once a
+ * contract exists — milestones with evidence submission, KPI verdicts and the
+ * final outcome.
+ */
+
+import React, { Suspense, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { AppLayout } from '@/components/shared/AppLayout';
+import { PageHeader, StatusBadge } from '@/components/shared/DesignSystem';
+import { PipelineStepper } from '@/components/shared/PipelineStepper';
+import { TabStrip, useTabParam } from '@/components/shared/Tabs';
+import { ApiErrorState, LoadingBlock, fmtDateTime, humanize } from '@/components/shared/States';
+import {
+  ChecklistPanel,
+  ContractPanel,
+  EligibilityPanel,
+  KPIVerdictsPanel,
+  MilestonesPanel,
+  PilotOutcomePanel,
+  ProposalPanel,
+  SandboxTrialPanel,
+} from '@/components/panels/ApplicationPanels';
+import { api, orNull } from '@/lib/api/client';
+import { useQuery } from '@/lib/hooks/useApi';
+import { EmptyState } from '@/components/shared/States';
 
-export default function ApplicationCasefilePage() {
-  const params = useParams();
-  const appId = Number(params?.id || 1);
-  const [activeTab, setActiveTab] = useState<'checklist' | 'milestones'>('checklist');
-  const [checklist, setChecklist] = useState<any[]>([]);
+const TABS = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'checklist', label: 'Checklist' },
+  { id: 'sandbox', label: 'Sandbox' },
+  { id: 'contract', label: 'Contract' },
+  { id: 'milestones', label: 'Milestones' },
+  { id: 'kpis', label: 'KPI verdicts' },
+  { id: 'outcome', label: 'Outcome' },
+];
 
-  useEffect(() => {
-    api.getChecklist(appId).then((res) => {
-      if (Array.isArray(res)) {
-        setChecklist(res.map(c => ({
-          id: c.id,
-          title: c.title || `Checklist Item #${c.id}`,
-          status: c.status || 'pending',
-          file: c.file_url || null,
-        })));
-      }
-    }).catch(() => {});
-  }, [appId]);
+function ApplicationDetail({ appId }: { appId: number }) {
+  const { active, setActive } = useTabParam(TABS);
 
-  const handleUpload = (id: number) => {
-    setChecklist(checklist.map(item => item.id === id ? { ...item, status: 'uploaded', file: `doc_upload_${id}.pdf` } : item));
-  };
+  const appQuery = useQuery(() => api.getApplication(appId), [appId]);
+  const app = appQuery.data;
+
+  const psQuery = useQuery(() => api.getProblemStatement(app!.problem_statement_id), [
+    app?.problem_statement_id,
+  ], { enabled: Boolean(app) });
+
+  // A contract may legitimately not exist yet, so a 404 here is not an error.
+  const contractQuery = useQuery(() => orNull(api.getContract(appId)), [appId]);
+  const [contractId, setContractId] = useState<number | null>(null);
+  const resolvedContractId = contractQuery.data?.id ?? contractId;
+
+  const commercialUnlocked = Boolean(psQuery.data?.commercial_unlocked_at);
+
+  if (appQuery.loading) return <LoadingBlock label="Loading application…" />;
+  if (appQuery.error) return <ApiErrorState error={appQuery.error} onRetry={appQuery.refetch} />;
+  if (!app) return null;
+
+  const title =
+    (app.technical_proposal?.title as string | undefined) ||
+    psQuery.data?.title ||
+    `Application #${app.id}`;
 
   return (
-    <AppLayout defaultRole={UserRole.STARTUP}>
-      <div className="space-y-6 max-w-5xl">
-        <PageHeader
-          title="Application Casefile #1"
-          subtitle="Dynamic Checklist & Mandatory Document Uploads"
-          role={UserRole.STARTUP}
-          stickyNote={
-            <StickyNote color="mint" title="Checklist Gate">
-              Upload required technical and security compliance evidence to complete under_review stage.
-            </StickyNote>
-          }
-          action={
-            <StatusBadge status="under_review" label="STATUS: UNDER_REVIEW (Phase 5.3)" />
-          }
-        />
+    <div className="space-y-6">
+      <PageHeader
+        title={title}
+        subtitle={
+          psQuery.data
+            ? `Against PS #${app.problem_statement_id} — ${psQuery.data.title}`
+            : `Against problem statement #${app.problem_statement_id}`
+        }
+        phase={`Application #${app.id}`}
+        role="startup"
+        breadcrumb={[
+          { label: 'Startup', href: '/startup/dashboard' },
+          { label: 'Applications', href: '/startup/applications' },
+          { label: `#${app.id}` },
+        ]}
+        actions={<StatusBadge status={app.status} />}
+      />
 
-        {/* Stepper Pipeline */}
-        <PipelineStepper currentStatus="under_review" />
-
-        {/* Tab selector */}
-        <div className="flex gap-2 border-b border-[#E8E2D5] pb-2">
-          <button
-            onClick={() => setActiveTab('checklist')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold uppercase transition-colors cursor-pointer ${
-              activeTab === 'checklist'
-                ? 'bg-[#1E9E5A] text-white'
-                : 'bg-[#F8F6F1] text-[#6B6560] hover:bg-[#EAF7ED]'
-            }`}
-          >
-            Phase 5.4: Document Checklist
-          </button>
-          <button
-            onClick={() => setActiveTab('milestones')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold uppercase transition-colors cursor-pointer ${
-              activeTab === 'milestones'
-                ? 'bg-[#1E9E5A] text-white'
-                : 'bg-[#F8F6F1] text-[#6B6560] hover:bg-[#EAF7ED]'
-            }`}
-          >
-            Phase 11.3: Contract Milestones
-          </button>
-        </div>
-
-        {activeTab === 'checklist' ? (
-          <DocumentForm
-            title="Dynamic Category Checklist Documents"
-            subtitle="Uploaded Verification Attachments"
-            refNumber="DOC-CHK-01"
-            role={UserRole.STARTUP}
-            watermark="CHECKLIST"
-          >
-            <div className="space-y-3 pt-2">
-              {checklist.map((item) => (
-                <DocRow key={item.id} hover={false} className="flex justify-between items-center">
-                  <div className="space-y-0.5">
-                    <div className="font-bold text-sm text-[#1A1A1A] flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-[#1E9E5A]" />
-                      {item.title}
-                    </div>
-                    <div className="text-[11px] font-mono text-[#6B6560]">
-                      {item.file || 'No document uploaded yet'}
-                    </div>
-                  </div>
-
-                  {item.status === 'uploaded' ? (
-                    <StatusBadge status="verified" label="✓ UPLOADED" />
-                  ) : (
-                    <DocButton
-                      variant="primary"
-                      role={UserRole.STARTUP}
-                      size="sm"
-                      icon={<Upload className="w-3.5 h-3.5" />}
-                      onClick={() => handleUpload(item.id)}
-                    >
-                      Upload File (Phase 5.5)
-                    </DocButton>
-                  )}
-                </DocRow>
-              ))}
-            </div>
-          </DocumentForm>
-        ) : (
-          <DocumentForm
-            title="Contract Milestone Submissions (Phase 11.3)"
-            subtitle="Independent Evaluator Pilot Verification"
-            role={UserRole.STARTUP}
-          >
-            <div className="p-4 bg-[#F8F6F1] rounded-lg border border-[#E8E2D5] text-xs text-[#6B6560] leading-relaxed">
-              Once application transitions to <strong className="text-[#1A1A1A]">contracted</strong> state, upload evidence for Milestones 1 through 5 here for Independent Evaluator review.
-            </div>
-          </DocumentForm>
-        )}
+      <div className="text-[11px] text-[#A89F94]">
+        Submitted {fmtDateTime(app.created_at)}
+        {psQuery.data ? ` · ${humanize(psQuery.data.category)}` : ''}
       </div>
+
+      <PipelineStepper currentStatus={app.status} />
+
+      <TabStrip tabs={TABS} active={active} onChange={setActive} role="startup" />
+
+      <div className="space-y-5">
+        {active === 'overview' && (
+          <>
+            <ProposalPanel
+              technical={app.technical_proposal}
+              commercial={app.commercial_proposal}
+              // The startup wrote this, so it always sees its own bid.
+              showCommercial
+            />
+            <EligibilityPanel appId={appId} />
+          </>
+        )}
+
+        {active === 'checklist' && <ChecklistPanel appId={appId} canUpload />}
+
+        {active === 'sandbox' && <SandboxTrialPanel appId={appId} />}
+
+        {active === 'contract' && (
+          <ContractPanel appId={appId} onContract={setContractId} />
+        )}
+
+        {active === 'milestones' &&
+          (resolvedContractId ? (
+            <MilestonesPanel contractId={resolvedContractId} canSubmitEvidence />
+          ) : (
+            <EmptyState
+              title="No contract yet"
+              hint="Milestones are created with the contract, once this application is selected for a pilot."
+            />
+          ))}
+
+        {active === 'kpis' &&
+          (resolvedContractId ? (
+            <KPIVerdictsPanel
+              contractId={resolvedContractId}
+              problemStatementId={app.problem_statement_id}
+            />
+          ) : (
+            <EmptyState title="No contract yet" hint="KPI verdicts are recorded against a contract." />
+          ))}
+
+        {active === 'outcome' &&
+          (resolvedContractId ? (
+            <PilotOutcomePanel contractId={resolvedContractId} />
+          ) : (
+            <EmptyState title="No contract yet" hint="The pilot outcome is recorded against a contract." />
+          ))}
+      </div>
+
+      {!commercialUnlocked && psQuery.data && (
+        <p className="text-[10px] text-[#A89F94] italic">
+          The commercial stage for this problem statement has not been unlocked yet.
+        </p>
+      )}
+    </div>
+  );
+}
+
+export default function StartupApplicationDetailPage() {
+  // useParams is the client-side reader; the `params` prop is a promise in this
+  // version of Next and this page is a client component.
+  const params = useParams<{ id: string }>();
+  const appId = Number(params.id);
+
+  return (
+    <AppLayout allow="startup">
+      {Number.isFinite(appId) ? (
+        <Suspense fallback={<LoadingBlock label="Loading application…" />}>
+          <ApplicationDetail appId={appId} />
+        </Suspense>
+      ) : (
+        <EmptyState title="Invalid application id" hint={`"${params.id}" is not a number.`} />
+      )}
     </AppLayout>
   );
 }
