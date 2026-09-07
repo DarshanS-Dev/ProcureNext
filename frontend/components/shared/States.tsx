@@ -123,43 +123,6 @@ export function QueryBoundary<T>({
   return <>{children(state.data)}</>;
 }
 
-/**
- * Seven backend routers exist but are not included in backend/app/main.py, so
- * their routes answer 404 for every path. That is indistinguishable from "no
- * row yet" at the HTTP level, so screens built on them say so explicitly rather
- * than showing a misleading empty state.
- */
-export const UNMOUNTED_ROUTERS = [
-  'invite',
-  'contract',
-  'milestones',
-  'kpi_verdicts',
-  'pilot_outcome',
-  'sandbox_trial',
-  'compliance_record',
-] as const;
-
-export const UnmountedRouterNotice: React.FC<{
-  /** Router module in backend/app/routers that serves this screen. */
-  router: (typeof UNMOUNTED_ROUTERS)[number];
-  feature: string;
-}> = ({ router, feature }) => (
-  <AlertStrip type="warning" title={`${feature} is not served yet`}>
-    <div className="space-y-1.5 leading-relaxed">
-      <p>
-        This screen calls a route defined in{' '}
-        <code className="font-mono">backend/app/routers/{router}.py</code>, but that
-        router is not included in <code className="font-mono">backend/app/main.py</code>,
-        so FastAPI answers 404 for every one of its paths.
-      </p>
-      <p>
-        Adding <code className="font-mono">app.include_router({router}.router)</code> to
-        main.py switches this screen on — no frontend change needed.
-      </p>
-    </div>
-  </AlertStrip>
-);
-
 /** Formats an ISO timestamp for display, tolerating null/undefined. */
 export const fmtDate = (iso?: string | null): string => {
   if (!iso) return '—';

@@ -36,7 +36,6 @@ import {
   ApiErrorState,
   EmptyState,
   LoadingBlock,
-  UnmountedRouterNotice,
   fmtDate,
   fmtDateTime,
   humanize,

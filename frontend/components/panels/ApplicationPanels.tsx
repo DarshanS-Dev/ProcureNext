@@ -26,12 +26,11 @@ import {
   ApiErrorState,
   EmptyState,
   LoadingBlock,
-  UnmountedRouterNotice,
   fmtDate,
   fmtDateTime,
   humanize,
 } from '@/components/shared/States';
-import { ApiError, api, orNull } from '@/lib/api/client';
+import { api, orNull } from '@/lib/api/client';
 import { useMutation, useQuery } from '@/lib/hooks/useApi';
 import {
   COIDeclarationRead,
@@ -89,23 +88,6 @@ const MutationFeedback: React.FC<{ state: ReturnType<typeof useMutation> }> = ({
     {state.success && <AlertStrip type="success" message={state.success} />}
   </>
 );
-
-/** Renders the unmounted-router explanation for a 404 on a Layer 5 route. */
-const Layer5Error: React.FC<{
-  error: ApiError;
-  router: Parameters<typeof UnmountedRouterNotice>[0]['router'];
-  feature: string;
-  onRetry: () => void;
-  notFoundLabel?: string;
-}> = ({ error, router, feature, onRetry, notFoundLabel }) =>
-  error.isNotFound ? (
-    <div className="space-y-3">
-      {notFoundLabel && <EmptyState title={notFoundLabel} hint={error.detail} />}
-      <UnmountedRouterNotice router={router} feature={feature} />
-    </div>
-  ) : (
-    <ApiErrorState error={error} onRetry={onRetry} />
-  );
 
 // ─────────────────────────────────────────────────────────────
 // Eligibility — GET / PATCH /applications/{id}/eligibility-check
@@ -1000,10 +982,8 @@ export const SandboxTrialPanel: React.FC<{ appId: number; canRecord?: boolean }>
 
       {query.loading && <LoadingBlock label="Loading sandbox trial…" />}
       {query.error && (
-        <Layer5Error
+        <ApiErrorState
           error={query.error}
-          router="sandbox_trial"
-          feature="Sandbox trials"
           onRetry={query.refetch}
           notFoundLabel="No sandbox trial recorded for this application"
         />
@@ -1200,10 +1180,8 @@ export const ContractPanel: React.FC<{
       {query.loading && <LoadingBlock label="Loading contract…" rows={2} />}
 
       {query.error && !(query.error.isNotFound && canCreate) && (
-        <Layer5Error
+        <ApiErrorState
           error={query.error}
-          router="contract"
-          feature="Contracts"
           onRetry={query.refetch}
           notFoundLabel="No contract raised for this application yet"
         />
@@ -1339,10 +1317,8 @@ export const MilestonesPanel: React.FC<{
 
       {query.loading && <LoadingBlock label="Loading milestones…" />}
       {query.error && (
-        <Layer5Error
+        <ApiErrorState
           error={query.error}
-          router="milestones"
-          feature="Pilot milestones"
           onRetry={query.refetch}
           notFoundLabel="No milestones found for this contract"
         />
@@ -1574,10 +1550,8 @@ export const KPIVerdictsPanel: React.FC<{
 
       {query.loading && <LoadingBlock label="Loading verdicts…" />}
       {query.error && (
-        <Layer5Error
+        <ApiErrorState
           error={query.error}
-          router="kpi_verdicts"
-          feature="KPI verdicts"
           onRetry={query.refetch}
           notFoundLabel="No KPI verdicts recorded yet"
         />
@@ -1764,10 +1738,8 @@ export const PilotOutcomePanel: React.FC<{ contractId: number; canDecide?: boole
 
       {query.loading && <LoadingBlock label="Loading outcome…" rows={2} />}
       {query.error && !(query.error.isNotFound && canDecide) && (
-        <Layer5Error
+        <ApiErrorState
           error={query.error}
-          router="pilot_outcome"
-          feature="Pilot outcomes"
           onRetry={query.refetch}
           notFoundLabel="No outcome recorded yet"
         />

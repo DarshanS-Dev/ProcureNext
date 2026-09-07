@@ -1,12 +1,12 @@
-# ============================================================
-# app/routers/invite.py
-#
-# ASSUMPTIONS (adjust to match your real codebase):
-# - app.database.get_db is your DB session dependency
-# - app.auth.get_current_user returns an object with .id and .role
-# - Router is mounted in main.py, e.g.:
-#     app.include_router(invite.router)
-# ============================================================
+"""
+app/routers/invite.py
+Invite endpoints.
+
+Role access per Doc D:
+  POST invite:     officer-owner of the PS
+  GET PS invites:  officer-owner / admin
+  GET my invites:  startup only
+"""
 
 from typing import List
 
@@ -14,8 +14,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.auth import get_current_user
-from app.models import ProblemStatement
+from app.auth.dependencies import get_current_user, require_role
+from app.models import RoleEnum, ProblemStatement
 from app.schemas.execution_schemas import (
     InviteCreate,
     InviteRead,
@@ -26,12 +26,11 @@ from app.services import invite_service
 router = APIRouter(tags=["invite"])
 
 
-def require_ps_owner(problem_statement_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
-    if user.role != "officer":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only an officer can invite startups",
-        )
+def require_ps_owner(
+    problem_statement_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(require_role(RoleEnum.officer)),
+):
     ps = db.query(ProblemStatement).filter(ProblemStatement.id == problem_statement_id).first()
     if ps is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Problem statement not found")
@@ -69,17 +68,14 @@ def invite_startup(
 def list_ps_invites(
     problem_statement_id: int,
     db: Session = Depends(get_db),
-    user=Depends(get_current_user),
+    user=Depends(require_role(RoleEnum.officer, RoleEnum.admin)),
 ):
-    # Doc D: officer-owner / admin.
-    if user.role == "officer":
+    if user.role == RoleEnum.officer:
         ps = db.query(ProblemStatement).filter(ProblemStatement.id == problem_statement_id).first()
         if ps is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Problem statement not found")
         if ps.officer_id != user.id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not own this problem statement")
-    elif user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
     return invite_service.list_invites_for_ps(db=db, problem_statement_id=problem_statement_id)
 
@@ -87,8 +83,6 @@ def list_ps_invites(
 @router.get("/startup/invites", response_model=List[InviteRead])
 def list_my_invites(
     db: Session = Depends(get_db),
-    user=Depends(get_current_user),
+    user=Depends(require_role(RoleEnum.startup)),
 ):
-    if user.role != "startup":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Startup access only")
     return invite_service.list_invites_for_startup(db=db, startup_id=user.id)

@@ -3,9 +3,7 @@
  *
  * Every method maps 1:1 onto a route registered in backend/app/routers/*.
  * Paths, HTTP verbs and body shapes are copied from the routers — nothing is
- * guessed. Endpoints whose router is not yet mounted in backend/app/main.py
- * are marked NOT MOUNTED; they are written correctly and will start working
- * the moment the router is included, but today they return 404.
+ * guessed. All routers are mounted in backend/app/main.py.
  *
  * Transport notes:
  * - Requests go to `/api/*` (same origin) and are proxied to FastAPI by the
@@ -517,7 +515,7 @@ export const api = {
   getDecisionReadiness: (appId: number) =>
     request<DecisionReadinessRead>(`/applications/${appId}/decision-readiness`),
 
-  // ── Layer 5 — Sandbox trial (router NOT MOUNTED in main.py) ─
+  // ── Layer 5 — Sandbox trial ─
   /** POST /applications/{id}/sandbox-trial */
   createSandboxTrial: (appId: number, payload: SandboxTrialCreate) =>
     request<SandboxTrialRead>(`/applications/${appId}/sandbox-trial`, {
@@ -536,7 +534,7 @@ export const api = {
   getSandboxTrial: (appId: number) =>
     request<SandboxTrialRead>(`/applications/${appId}/sandbox-trial`),
 
-  // ── Layer 5 — Contract (router NOT MOUNTED in main.py) ─────
+  // ── Layer 5 — Contract ─────
   /** POST /applications/{id}/contract — empty body, clauses derived server-side. */
   createContract: (appId: number) =>
     request<ContractRead>(`/applications/${appId}/contract`, {
@@ -548,7 +546,7 @@ export const api = {
   getContract: (appId: number) =>
     request<ContractRead>(`/applications/${appId}/contract`),
 
-  // ── Layer 5 — Milestones (router NOT MOUNTED in main.py) ───
+  // ── Layer 5 — Milestones ───
   /** GET /contracts/{id}/milestones */
   getMilestones: (contractId: number) =>
     request<PilotMilestoneRead[]>(`/contracts/${contractId}/milestones`),
@@ -582,7 +580,7 @@ export const api = {
       { method: 'PATCH', body: payload },
     ),
 
-  // ── Layer 5 — KPI verdicts (router NOT MOUNTED in main.py) ─
+  // ── Layer 5 — KPI verdicts ─
   /** POST /contracts/{id}/kpi-verdicts */
   submitKPIVerdict: (contractId: number, payload: KPIVerdictCreate) =>
     request<KPIVerdictRead>(`/contracts/${contractId}/kpi-verdicts`, {
@@ -594,7 +592,7 @@ export const api = {
   getKPIVerdicts: (contractId: number) =>
     request<KPIVerdictRead[]>(`/contracts/${contractId}/kpi-verdicts`),
 
-  // ── Layer 5 — Pilot outcome (router NOT MOUNTED in main.py) ─
+  // ── Layer 5 — Pilot outcome ─
   /** POST /contracts/{id}/pilot-outcome */
   createPilotOutcome: (contractId: number, payload: PilotOutcomeCreate) =>
     request<PilotOutcomeRead>(`/contracts/${contractId}/pilot-outcome`, {
@@ -606,7 +604,7 @@ export const api = {
   getPilotOutcome: (contractId: number) =>
     request<PilotOutcomeRead>(`/contracts/${contractId}/pilot-outcome`),
 
-  // ── Invites (router NOT MOUNTED in main.py) ────────────────
+  // ── Invites ────────────────
   /** POST /problem-statements/{id}/invite */
   sendInvite: (psId: number, payload: InviteCreate) =>
     request<InviteRead>(`/problem-statements/${psId}/invite`, {
@@ -621,7 +619,7 @@ export const api = {
   /** GET /startup/invites */
   getMyInvites: () => request<InviteRead[]>('/startup/invites'),
 
-  // ── Compliance records (router NOT MOUNTED in main.py) ─────
+  // ── Compliance records ─────
   /** POST /admin/applications/{id}/compliance-record */
   generateComplianceRecord: (appId: number) =>
     request<ComplianceRecordRead>(`/admin/applications/${appId}/compliance-record`, {

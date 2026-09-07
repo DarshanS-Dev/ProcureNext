@@ -25,10 +25,10 @@ import json
 from typing import Any, Literal, Optional
 
 from openai import AsyncOpenAI
-import os
+from app.config import settings
 
 client = AsyncOpenAI(
-    api_key=os.environ["GROQ_API_KEY"],
+    api_key=settings.GROQ_API_KEY,
     base_url="https://api.groq.com/openai/v1",
 )
 

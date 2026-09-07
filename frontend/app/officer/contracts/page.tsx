@@ -22,7 +22,6 @@ import {
   ApiErrorState,
   EmptyState,
   LoadingBlock,
-  UnmountedRouterNotice,
   fmtDateTime,
 } from '@/components/shared/States';
 import { api, orNull } from '@/lib/api/client';
@@ -43,7 +42,7 @@ const CONTRACTABLE = new Set(['selected', 'contracted', 'completed']);
 export default function OfficerContractsPage() {
   const session = useSession();
 
-  const query = useQuery<{ rows: ContractRow[]; candidates: number; routerMissing: boolean }>(
+  const query = useQuery<{ rows: ContractRow[]; candidates: number }>(
     async () => {
       const all = await api.getProblemStatements();
       const mine = all.filter((ps) => ps.officer_id === session!.userId);
@@ -61,20 +60,16 @@ export default function OfficerContractsPage() {
 
       const candidates = appLists.flat().filter(({ app }) => CONTRACTABLE.has(app.status));
 
-      let routerMissing = false;
       const rows = (
         await Promise.all(
           candidates.map(async ({ app, ps }) => {
-            const contract = await orNull(api.getContract(app.id)).catch(() => {
-              routerMissing = true;
-              return null;
-            });
+            const contract = await orNull(api.getContract(app.id)).catch(() => null);
             return contract ? { contract, app, ps } : null;
           }),
         )
       ).filter((r): r is ContractRow => r !== null);
 
-      return { rows, candidates: candidates.length, routerMissing };
+      return { rows, candidates: candidates.length };
     },
     [session?.userId],
     { enabled: Boolean(session) },
@@ -95,10 +90,6 @@ export default function OfficerContractsPage() {
 
         {(query.loading || !session) && <LoadingBlock label="Finding contracts…" />}
         {query.error && <ApiErrorState error={query.error} onRetry={query.refetch} />}
-
-        {query.data?.routerMissing && (
-          <UnmountedRouterNotice router="contract" feature="Contracts" />
-        )}
 
         {query.data && rows.length === 0 && (
           <EmptyState

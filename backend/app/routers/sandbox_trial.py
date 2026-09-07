@@ -1,20 +1,18 @@
-# ============================================================
-# app/routers/sandbox_router.py
-#
-# ASSUMPTIONS (adjust to match your real codebase):
-# - app.database.get_db is your DB session dependency
-# - app.auth (or wherever) has get_current_user, returning an object
-#   with .role, and role values match the User.role enum
-#   (officer, startup, evaluator, independent_evaluator, admin)
-# - Router is mounted in main.py, e.g.:
-#     app.include_router(sandbox_router.router)
-# ============================================================
+"""
+app/routers/sandbox_trial.py
+Stage A — Sandbox Trial endpoints.
+
+Role access per Doc D:
+  POST/PATCH: independent_evaluator only
+  GET:        officer / independent_evaluator / admin / startup
+"""
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.auth import get_current_user  # ADJUST to your actual auth dependency
+from app.auth.dependencies import get_current_user, require_role
+from app.models import RoleEnum
 from app.schemas.execution_schemas import (
     SandboxTrialCreate,
     SandboxTrialUpdate,
@@ -25,22 +23,12 @@ from app.services import sandbox_service
 router = APIRouter(prefix="/applications/{application_id}/sandbox-trial", tags=["sandbox-trial"])
 
 
-def require_independent_evaluator(user=Depends(get_current_user)):
-    if user.role != "independent_evaluator":
-        from fastapi import HTTPException, status
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only an independent evaluator can perform this action",
-        )
-    return user
-
-
 @router.post("", response_model=SandboxTrialRead, status_code=201)
 def create_sandbox_trial(
     application_id: int,
     payload: SandboxTrialCreate,
     db: Session = Depends(get_db),
-    user=Depends(require_independent_evaluator),
+    user=Depends(require_role(RoleEnum.independent_evaluator)),
 ):
     return sandbox_service.create_sandbox_trial(
         db=db,
@@ -61,7 +49,7 @@ def update_sandbox_trial(
     trial_id: int,
     payload: SandboxTrialUpdate,
     db: Session = Depends(get_db),
-    user=Depends(require_independent_evaluator),
+    user=Depends(require_role(RoleEnum.independent_evaluator)),
 ):
     return sandbox_service.update_sandbox_trial(
         db=db,
@@ -76,9 +64,6 @@ def update_sandbox_trial(
 def get_sandbox_trial(
     application_id: int,
     db: Session = Depends(get_db),
-    # ASSUMPTION: allowed roles per Doc D — officer/independent_evaluator/admin/startup-own.
-    # "startup-own" ownership check isn't implemented here — add a check that
-    # user.id == application.startup_id when user.role == "startup".
-    user=Depends(get_current_user),
+    user=Depends(require_role(RoleEnum.officer, RoleEnum.independent_evaluator, RoleEnum.admin, RoleEnum.startup)),
 ):
     return sandbox_service.get_sandbox_trial(db=db, application_id=application_id)
