@@ -813,12 +813,13 @@ export const DecisionReadinessPanel: React.FC<{
   onSelected?: () => void;
 }> = ({ appId, canSelect = false, canViewCOI, onSelected }) => {
   const query = useQuery(() => api.getDecisionReadiness(appId), [appId]);
-  const coiQuery = useQuery(() => orNull(api.getCOIDeclarations(appId)), [appId]);
+  const coiQuery = useQuery(() => orNull(api.getCOIDeclaration(appId)), [appId]);
   const select = useMutation();
 
   const ready = query.data?.overall_ready ?? false;
   const showCOI = canViewCOI ?? canSelect;
-  const coiList: COIDeclarationRead[] = coiQuery.data ?? [];
+  // The backend serves a single declaration per application+caller, not a list.
+  const coiList: COIDeclarationRead[] = coiQuery.data ? [coiQuery.data] : [];
 
   return (
     <DataCard>

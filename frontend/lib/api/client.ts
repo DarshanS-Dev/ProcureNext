@@ -455,9 +455,6 @@ export const api = {
   getCOIDeclaration: (appId: number) =>
     request<COIDeclarationRead>(`/applications/${appId}/coi-declaration`),
 
-  /** GET /applications/{id}/coi-declarations — all COI declarations for an application (officer/admin). */
-  getCOIDeclarations: (appId: number) =>
-    request<COIDeclarationRead[]>(`/applications/${appId}/coi-declarations`),
 
   // ── Technical scoring ─────────────────────────────────────
   /** GET /rubric-criteria — the seeded platform-wide criteria. */

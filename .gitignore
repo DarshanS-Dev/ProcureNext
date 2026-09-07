@@ -44,4 +44,8 @@ Thumbs.db
 .coverage
 .pytest_cache/
 htmlcov/
+<<<<<<< HEAD
 
+=======
+chroma_data/
+>>>>>>> c7de79a (Fixed bugs in evaluator service file)
