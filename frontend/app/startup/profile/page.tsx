@@ -69,6 +69,8 @@ export default function StartupProfilePage() {
   const [trlStage, setTrlStage] = useState('');
   const [architecture, setArchitecture] = useState<ArchitectureTagEnum[]>([]);
   const [apiAvailable, setApiAvailable] = useState(false);
+  // No UI field yet — carried through so the payload always sends a list, never undefined.
+  const [pastDeployments, setPastDeployments] = useState<unknown[]>([]);
   const [fundingBand, setFundingBand] = useState<FundingBandEnum | ''>('');
   const [description, setDescription] = useState('');
 
@@ -91,6 +93,7 @@ export default function StartupProfilePage() {
     setTrlStage(profile.trl_stage != null ? String(profile.trl_stage) : '');
     setArchitecture(profile.architecture ?? []);
     setApiAvailable(profile.api_available ?? false);
+    setPastDeployments(profile.past_deployments ?? []);
     setFundingBand(profile.funding_band ?? '');
     setDescription(profile.description ?? '');
   }, [profile]);
@@ -126,6 +129,7 @@ export default function StartupProfilePage() {
           trl_stage: trlStage ? Number(trlStage) : null,
           architecture: architecture.length ? architecture : null,
           api_available: apiAvailable,
+          past_deployments: pastDeployments ?? [],
           funding_band: fundingBand || null,
           description: description || null,
         }),
