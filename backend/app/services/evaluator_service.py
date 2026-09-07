@@ -143,6 +143,7 @@ def assign_evaluator(
         assigned_by=assigned_by,
     )
     db.add(assignment)
+    db.flush()
 
     audit_log_service.write_audit_log(
         db,
@@ -348,6 +349,7 @@ def declare_coi(
         recused=recused,
     )
     db.add(coi)
+    db.flush()
 
     audit_log_service.write_audit_log(
         db,

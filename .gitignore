@@ -43,3 +43,4 @@ Thumbs.db
 .coverage
 .pytest_cache/
 htmlcov/
+chroma_data/

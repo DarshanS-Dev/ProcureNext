@@ -173,12 +173,6 @@ def _check_containment_plan_exists(db: Session, application_id: int) -> bool:
 # ============================================================
 
 def get_decision_readiness(db: Session, application_id: int) -> dict:
-    """
-    GET /applications/{id}/decision-readiness — officer-owner/admin.
-
-    Computed live on every call (Doc B Stage 6 #1, PRD §16 — "never cached").
-    Returns a dict matching DecisionReadinessRead exactly.
-    """
     application = db.query(Application).filter(Application.id == application_id).first()
     if application is None:
         raise ApplicationNotFoundError(f"Application {application_id} not found")
@@ -193,6 +187,17 @@ def get_decision_readiness(db: Session, application_id: int) -> dict:
             f"ProblemStatement {application.problem_statement_id} not found "
             f"for application {application_id}"
         )
+
+    # SELF-HEALING: the reactive trigger in scoring_service.submit_scores can
+    # miss the exact moment completeness becomes true (e.g. an exception after
+    # scores commit but before the unlock check runs). Rather than leaving a
+    # PS stuck forever with no automatic recovery, opportunistically re-check
+    # on every readiness read. No-op (cheap) if already unlocked or genuinely
+    # still incomplete.
+    if ps.commercial_unlocked_at is None:
+        from app.services import qcbs_service
+        qcbs_service.maybe_unlock_commercial_envelope(db, ps.id)
+        db.refresh(ps)
 
     eligibility_passed = _check_eligibility(db, application_id)
     stage3_scoring_complete = _check_stage3_complete(db, application_id)
