@@ -97,7 +97,7 @@ export default function AdminEvaluatorsPage() {
           </FormField>
 
           {selectedPs && (
-            <p className="text-[11px] text-[#6B6560] mt-2">
+            <p className="text-[11px] text-[#6B7280] mt-2">
               {humanize(selectedPs.category)} · owned by officer #{selectedPs.officer_id} ·{' '}
               {selectedPs.status}
             </p>
@@ -136,21 +136,21 @@ export default function AdminEvaluatorsPage() {
                 />
               )}
 
-              <div className="divide-y divide-[#F1EDE4]">
+              <div className="divide-y divide-[#F0F0EA]">
                 {(assignments.data ?? []).map((a) => {
                   const user = userById.get(a.evaluator_id);
                   return (
                     <div key={a.id} className="py-3 flex items-center justify-between gap-3">
                       <div>
-                        <div className="text-xs font-bold text-[#1A1A1A]">
+                        <div className="text-xs font-bold text-[#18181B]">
                           {user ? user.name : `Evaluator #${a.evaluator_id}`}
                         </div>
-                        <div className="text-[11px] text-[#6B6560]">
+                        <div className="text-[11px] text-[#6B7280]">
                           {user?.email ?? `user #${a.evaluator_id}`} · assigned{' '}
                           {fmtDateTime(a.assigned_at)} by user #{a.assigned_by}
                         </div>
                       </div>
-                      <span className="font-mono text-[10px] text-[#A89F94]">#{a.evaluator_id}</span>
+                      <span className="font-mono text-[10px] text-[#9CA3AF]">#{a.evaluator_id}</span>
                     </div>
                   );
                 })}
@@ -238,7 +238,7 @@ export default function AdminEvaluatorsPage() {
                 endpoint={`POST /problem-statements/${selectedPsId}/evaluators/replace`}
               />
 
-              <p className="text-xs text-[#6B6560] mb-4">
+              <p className="text-xs text-[#6B7280] mb-4">
                 Use this when an evaluator has a conflict on one application. The
                 outgoing evaluator is marked recused on that application only — they
                 stay on the panel for everything else — and the incoming evaluator is

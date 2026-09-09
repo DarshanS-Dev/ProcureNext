@@ -1,39 +1,41 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@400;600;700&family=DM+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
+/*
+ * The single source of truth for colour is components/shared/design-system/tokens.ts.
+ * These variables mirror it for the few places that need raw CSS (scrollbars,
+ * body background, selection). Nothing here should introduce a colour that is
+ * not in that file.
+ *
+ * The previous "government paper" theme — cream background, noise texture,
+ * Playfair serif headings, sticky notes, rubber stamps, watermarks, ruled
+ * paper — has been removed outright, not layered over.
+ */
+
 :root {
-  --paper-bg: #F8F6F1;
-  --paper-card: #FFFFFF;
-  --paper-border: #E8E2D5;
-  --paper-line: #EDE7DB;
-  --ink-black: #1A1A1A;
-  --ink-muted: #6B6560;
-  --ink-light: #A89F94;
-  --stamp-green: #1E9E5A;
-  --stamp-green-tint: #EAF7ED;
-  --stamp-amber: #B8860B;
-  --stamp-amber-tint: #FDF3DC;
-  --stamp-blue: #2563EB;
-  --stamp-blue-tint: #E9F1FB;
-  --stamp-orange: #D2691E;
-  --stamp-orange-tint: #FBEFE6;
-  --stamp-rose: #C81E4A;
-  --stamp-rose-tint: #FBEAEC;
-  --sticky-yellow: #FFF8C5;
-  --sticky-yellow-dark: #F5E642;
-  --sticky-pink: #FFE4F0;
-  --sticky-blue: #D4EEFF;
+  --bg: #F4F4EF;
+  --surface: #FFFFFF;
+  --surface-muted: #F3F3EE;
+  --border: #E5E5E0;
+  --divider: #F0F0EA;
+  --ink: #18181B;
+  --ink-soft: #6B7280;
+  --ink-faint: #9CA3AF;
+  --accent: #D7FD44;
+  --accent-deep: #C3EB30;
+  color-scheme: light;
 }
 
 @theme inline {
-  --color-background: var(--paper-bg);
-  --color-foreground: var(--ink-black);
+  --color-background: var(--bg);
+  --color-foreground: var(--ink);
   --font-sans: 'Inter', system-ui, sans-serif;
-  --font-mono: 'DM Mono', monospace;
-  --font-display: 'Playfair Display', serif;
+  --font-mono: 'DM Mono', ui-monospace, monospace;
 }
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
@@ -42,213 +44,83 @@ html {
 }
 
 body {
-  background: var(--paper-bg);
-  color: var(--ink-black);
+  background: var(--bg);
+  color: var(--ink);
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
+  margin: 0;
 }
 
-/* Paper texture overlay */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--paper-line); }
-::-webkit-scrollbar-thumb { background: var(--ink-light); border-radius: 3px; }
-
-/* Document form lines */
-.form-field-line {
-  border-bottom: 1.5px solid var(--paper-line);
-  background: transparent;
-  padding: 0.5rem 0;
-  font-size: 0.875rem;
-  color: var(--ink-black);
-  width: 100%;
-  outline: none;
-  transition: border-color 0.2s;
-  font-family: 'Inter', sans-serif;
-}
-.form-field-line:focus {
-  border-bottom-color: var(--ink-black);
-}
-.form-field-line::placeholder {
-  color: var(--ink-light);
-  font-style: italic;
-}
-
-/* Document paper card */
-.doc-card {
-  background: var(--paper-card);
-  border: 1px solid var(--paper-border);
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
-  position: relative;
-  overflow: hidden;
-}
-
-.doc-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--paper-border) 0%, transparent 100%);
-}
-
-/* Ruled paper lines for form backgrounds */
-.ruled-bg {
-  background-image: repeating-linear-gradient(
-    transparent,
-    transparent 27px,
-    #EDE7DB 27px,
-    #EDE7DB 28px
-  );
-  background-color: #FDFBF7;
-}
-
-/* Stamp button style */
-.btn-stamp {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 1.25rem;
-  border-radius: 6px;
-  font-weight: 700;
-  font-size: 0.75rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  border: 1.5px solid currentColor;
-  position: relative;
-}
-
-.btn-stamp:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-}
-
-.btn-stamp:active {
-  transform: translateY(0);
-}
-
-/* Sticky note style */
-.sticky-note {
-  background: var(--sticky-yellow);
-  border-left: 3px solid var(--sticky-yellow-dark);
-  padding: 0.75rem 1rem;
-  border-radius: 0 8px 8px 0;
-  font-size: 0.75rem;
-  position: relative;
-  box-shadow: 2px 3px 8px rgba(0,0,0,0.08);
-}
-
-.sticky-note::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, transparent 50%);
-  pointer-events: none;
-  border-radius: inherit;
-}
-
-/* Status badge */
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.2rem 0.65rem;
-  border-radius: 4px;
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-/* Document header rule */
-.doc-header-rule {
-  border: none;
-  border-top: 2px solid var(--ink-black);
-  border-bottom: 1px solid var(--paper-border);
-  margin: 0.75rem 0;
-}
-
-/* Watermark text */
-.watermark {
-  position: absolute;
-  bottom: 1.5rem;
-  right: 1.5rem;
-  font-size: 4rem;
+/* Headings carry the display weight; there is no serif in this system. */
+h1,
+h2,
+h3,
+h4,
+h5 {
   font-weight: 900;
-  color: rgba(0,0,0,0.03);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  pointer-events: none;
-  user-select: none;
-  font-family: 'Playfair Display', serif;
+  letter-spacing: -0.02em;
 }
 
-/* Page fade-in */
+::selection {
+  background: var(--accent);
+  color: var(--ink);
+}
+
+/* Scrollbars: thin, on the muted surface. */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #DCDCD5;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-faint);
+}
+
+/* Pill rows scroll horizontally without showing a bar. */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Focus ring, consistent across every interactive element. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+  border-radius: 999px;
+}
+
 @keyframes pageFadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .page-enter {
   animation: pageFadeIn 0.3s ease forwards;
 }
 
-/* Ink underline link */
-.ink-link {
-  color: var(--ink-black);
-  text-decoration: underline;
-  text-decoration-color: var(--paper-border);
-  text-underline-offset: 3px;
-  transition: text-decoration-color 0.2s;
-}
-
-.ink-link:hover {
-  text-decoration-color: var(--ink-black);
-}
-
-/* Clip/stamp badge */
-.paper-clip {
-  position: relative;
-}
-
-.paper-clip::before {
-  content: '📎';
-  position: absolute;
-  top: -12px;
-  left: 16px;
-  font-size: 1.25rem;
-  transform: rotate(-20deg);
-}
-
-@keyframes stickyWobble {
-  0%, 100% { transform: rotate(-1deg); }
-  50% { transform: rotate(0.5deg); }
-}
-
-.sticky-animate {
-  animation: stickyWobble 4s ease-in-out infinite;
-}
-
-@keyframes stampIn {
-  0% { opacity: 0; transform: scale(1.3) rotate(-3deg); }
-  60% { transform: scale(0.95) rotate(1deg); }
-  100% { opacity: 1; transform: scale(1) rotate(0deg); }
-}
-
-.stamp-in {
-  animation: stampIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

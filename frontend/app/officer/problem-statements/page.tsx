@@ -61,7 +61,7 @@ export default function OfficerProblemStatementsPage() {
 
         <div className="flex flex-wrap gap-3">
           <div className="w-48">
-            <label className="text-[11px] font-bold text-[#6B6560] uppercase tracking-wider">
+            <label className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">
               Scope
             </label>
             <DocSelect value={scope} onChange={(e) => setScope(e.target.value as 'mine' | 'all')}>
@@ -70,7 +70,7 @@ export default function OfficerProblemStatementsPage() {
             </DocSelect>
           </div>
           <div className="w-48">
-            <label className="text-[11px] font-bold text-[#6B6560] uppercase tracking-wider">
+            <label className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">
               Status
             </label>
             <DocSelect value={status} onChange={(e) => setStatus(e.target.value as PSStatusEnum | '')}>
@@ -107,7 +107,7 @@ export default function OfficerProblemStatementsPage() {
             refNumber="PS-REG"
             role="officer"
           >
-            <div className="pt-2 divide-y divide-[#EDE7DB]">
+            <div className="pt-2 divide-y divide-[#F0F0EA]">
               {rows.map((ps) => {
                 const isMine = session?.userId === ps.officer_id;
                 return (
@@ -118,24 +118,24 @@ export default function OfficerProblemStatementsPage() {
                     <div className="min-w-0 space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <StatusBadge status={ps.status} />
-                        <span className="font-mono text-[11px] text-[#A89F94]">PS #{ps.id}</span>
+                        <span className="font-mono text-[11px] text-[#9CA3AF]">PS #{ps.id}</span>
                         {!isMine && (
-                          <span className="text-[10px] font-bold uppercase text-[#A89F94]">
+                          <span className="text-[10px] font-bold uppercase text-[#9CA3AF]">
                             Officer #{ps.officer_id}
                           </span>
                         )}
                         {!ps.is_locked_field_editable && (
                           <span
                             className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded"
-                            style={{ backgroundColor: '#FDF3DC', color: '#B8860B' }}
+                            style={{ backgroundColor: '#FEF6E7', color: '#B45309' }}
                             title="Applications exist, so the locked fields can no longer change"
                           >
                             Fields locked
                           </span>
                         )}
                       </div>
-                      <div className="font-bold text-sm text-[#1A1A1A]">{ps.title}</div>
-                      <div className="text-[11px] text-[#6B6560]">
+                      <div className="font-bold text-sm text-[#18181B]">{ps.title}</div>
+                      <div className="text-[11px] text-[#6B7280]">
                         {humanize(ps.category)}
                         {ps.budget_range ? ` · ${humanize(ps.budget_range)}` : ''} · Created{' '}
                         {fmtDate(ps.created_at)}

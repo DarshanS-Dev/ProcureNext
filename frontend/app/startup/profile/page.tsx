@@ -180,7 +180,7 @@ export default function StartupProfilePage() {
                   style={
                     tab === t.id
                       ? { backgroundColor: '#EAF7ED', color: '#1E9E5A', border: '1.5px solid #B8E6C4' }
-                      : { backgroundColor: '#fff', color: '#6B6560', border: '1px solid #E8E2D5' }
+                      : { backgroundColor: '#fff', color: '#6B7280', border: '1px solid #E5E5E0' }
                   }
                 >
                   {t.label}
@@ -325,7 +325,7 @@ export default function StartupProfilePage() {
                             style={
                               on
                                 ? { backgroundColor: '#EAF7ED', color: '#1E9E5A', border: '1.5px solid #B8E6C4' }
-                                : { backgroundColor: '#fff', color: '#6B6560', border: '1px solid #E8E2D5' }
+                                : { backgroundColor: '#fff', color: '#6B7280', border: '1px solid #E5E5E0' }
                             }
                           >
                             {humanize(tag)}
@@ -336,7 +336,7 @@ export default function StartupProfilePage() {
                   </FormField>
 
                   <FormField label="Public API available">
-                    <label className="flex items-center gap-2.5 text-sm font-medium text-[#1A1A1A] cursor-pointer pt-1">
+                    <label className="flex items-center gap-2.5 text-sm font-medium text-[#18181B] cursor-pointer pt-1">
                       <input
                         type="checkbox"
                         checked={apiAvailable}
@@ -367,7 +367,7 @@ const SaveRow: React.FC<{
     <SectionDivider label="Submit" />
     {state.error && <AlertStrip type="error" title="Not saved" message={state.error.detail} />}
     {state.success && <AlertStrip type="success" message={state.success} />}
-    {lockedNote && <p className="text-[10px] text-[#A89F94] italic">{lockedNote}</p>}
+    {lockedNote && <p className="text-[10px] text-[#9CA3AF] italic">{lockedNote}</p>}
     <DocButton
       type="submit"
       variant="primary"
@@ -397,7 +397,7 @@ const ComplianceCard: React.FC<{ profile: StartupProfileRead }> = ({ profile }) 
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <ShieldCheck className="w-4 h-4 text-[#1E9E5A]" />
-          <span className="text-sm font-bold text-[#1A1A1A]">Application readiness</span>
+          <span className="text-sm font-bold text-[#18181B]">Application readiness</span>
         </div>
         <StatusBadge
           status={complianceVerified && level2Complete ? 'verified' : 'pending'}
@@ -428,14 +428,14 @@ const ComplianceCard: React.FC<{ profile: StartupProfileRead }> = ({ profile }) 
             key={c.label}
             className="px-3 py-2 rounded-lg text-center"
             style={{
-              backgroundColor: c.ok ? '#EAF7ED' : '#F8F6F1',
-              border: `1px solid ${c.ok ? '#B8E6C4' : '#E8E2D5'}`,
+              backgroundColor: c.ok ? '#EAF7ED' : '#F4F4EF',
+              border: `1px solid ${c.ok ? '#B8E6C4' : '#E5E5E0'}`,
             }}
           >
-            <div className="text-[9px] font-bold uppercase tracking-wider text-[#A89F94]">{c.label}</div>
+            <div className="text-[9px] font-bold uppercase tracking-wider text-[#9CA3AF]">{c.label}</div>
             <div
               className="text-xs font-bold mt-0.5"
-              style={{ color: c.ok ? '#1E9E5A' : '#6B6560' }}
+              style={{ color: c.ok ? '#1E9E5A' : '#6B7280' }}
             >
               {c.value}
             </div>
@@ -450,19 +450,19 @@ const GateRow: React.FC<{ ok: boolean; label: string; detail: string }> = ({ ok,
   <div
     className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg"
     style={{
-      backgroundColor: ok ? '#EAF7ED' : '#FDF3DC',
-      border: `1px solid ${ok ? '#B8E6C4' : '#F7E1B5'}`,
+      backgroundColor: ok ? '#EAF7ED' : '#FEF6E7',
+      border: `1px solid ${ok ? '#B8E6C4' : '#FEF6E7'}`,
     }}
   >
     <CheckCircle2
       className="w-4 h-4 shrink-0 mt-0.5"
-      style={{ color: ok ? '#1E9E5A' : '#B8860B', opacity: ok ? 1 : 0.4 }}
+      style={{ color: ok ? '#1E9E5A' : '#B45309', opacity: ok ? 1 : 0.4 }}
     />
     <div>
-      <div className="text-xs font-bold" style={{ color: ok ? '#1E9E5A' : '#B8860B' }}>
+      <div className="text-xs font-bold" style={{ color: ok ? '#1E9E5A' : '#B45309' }}>
         {label}
       </div>
-      <div className="text-[11px] text-[#6B6560]">{detail}</div>
+      <div className="text-[11px] text-[#6B7280]">{detail}</div>
     </div>
   </div>
 );

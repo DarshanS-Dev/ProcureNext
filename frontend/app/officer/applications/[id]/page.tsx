@@ -11,7 +11,7 @@ import React, { Suspense, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { AppLayout } from '@/components/shared/AppLayout';
 import { AlertStrip, PageHeader, StatusBadge } from '@/components/shared/DesignSystem';
-import { PipelineStepper } from '@/components/shared/PipelineStepper';
+import { ApplicationStatusStepper } from '@/components/shared/domain/Insights';
 import { TabStrip, useTabParam } from '@/components/shared/Tabs';
 import {
   ApiErrorState,
@@ -96,7 +96,7 @@ function OfficerApplicationDetail({ appId }: { appId: number }) {
         actions={<StatusBadge status={app.status} />}
       />
 
-      <div className="text-[11px] text-[#A89F94]">
+      <div className="text-[11px] text-[#9CA3AF]">
         Startup #{app.startup_id} · submitted {fmtDateTime(app.created_at)}
         {psQuery.data ? ` · ${humanize(psQuery.data.category)}` : ''}
       </div>
@@ -109,7 +109,7 @@ function OfficerApplicationDetail({ appId }: { appId: number }) {
         />
       )}
 
-      <PipelineStepper currentStatus={app.status} />
+      <ApplicationStatusStepper status={app.status} />
 
       <TabStrip tabs={TABS} active={active} onChange={setActive} role="officer" />
 

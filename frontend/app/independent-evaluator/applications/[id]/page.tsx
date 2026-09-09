@@ -88,7 +88,7 @@ function VerificationWorkspace({ appId }: { appId: number }) {
         actions={<StatusBadge status={app.status} />}
       />
 
-      <div className="text-[11px] text-[#A89F94]">
+      <div className="text-[11px] text-[#9CA3AF]">
         Startup #{app.startup_id} · submitted {fmtDateTime(app.created_at)}
         {psQuery.data ? ` · ${humanize(psQuery.data.category)}` : ''}
         {resolvedContractId ? ` · contract #${resolvedContractId}` : ''}

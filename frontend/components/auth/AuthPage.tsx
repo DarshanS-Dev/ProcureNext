@@ -54,9 +54,9 @@ const ROLE_CARDS: {
     title: 'Startup Founder',
     desc: 'Submit proposals, track eligibility, run sandbox trials.',
     icon: Rocket,
-    tintBg: 'bg-[#EAF7ED]',
-    darkText: 'text-[#1E9E5A]',
-    borderCol: 'border-[#B8E6C4]',
+    tintBg: 'bg-[#F3F3EE]',
+    darkText: 'text-[#18181B]',
+    borderCol: 'border-[#E5E5E0]',
     selfServe: true,
   },
   {
@@ -64,9 +64,9 @@ const ROLE_CARDS: {
     title: 'Nodal Officer',
     desc: 'Draft problem statements, review applications, award pilots.',
     icon: ShieldCheck,
-    tintBg: 'bg-[#FDF3DC]',
-    darkText: 'text-[#B8860B]',
-    borderCol: 'border-[#F7E1B5]',
+    tintBg: 'bg-[#F3F3EE]',
+    darkText: 'text-[#18181B]',
+    borderCol: 'border-[#E5E5E0]',
     selfServe: false,
   },
   {
@@ -74,9 +74,9 @@ const ROLE_CARDS: {
     title: 'Evaluator',
     desc: 'Score technical proposals against the rubric, declare conflicts.',
     icon: Award,
-    tintBg: 'bg-[#E9F1FB]',
-    darkText: 'text-[#2563EB]',
-    borderCol: 'border-[#BFD7F8]',
+    tintBg: 'bg-[#F3F3EE]',
+    darkText: 'text-[#18181B]',
+    borderCol: 'border-[#E5E5E0]',
     selfServe: false,
   },
   {
@@ -84,9 +84,9 @@ const ROLE_CARDS: {
     title: 'Independent Evaluator',
     desc: 'Verify sandbox trials, milestones and KPI verdicts.',
     icon: FlaskConical,
-    tintBg: 'bg-[#FBEFE6]',
-    darkText: 'text-[#D2691E]',
-    borderCol: 'border-[#F5CFB8]',
+    tintBg: 'bg-[#F3F3EE]',
+    darkText: 'text-[#18181B]',
+    borderCol: 'border-[#E5E5E0]',
     selfServe: false,
   },
   {
@@ -94,9 +94,9 @@ const ROLE_CARDS: {
     title: 'Platform Admin',
     desc: 'Provision accounts, verify compliance, compile records.',
     icon: Lock,
-    tintBg: 'bg-[#FBEAEC]',
-    darkText: 'text-[#C81E4A]',
-    borderCol: 'border-[#F5C2C9]',
+    tintBg: 'bg-[#F3F3EE]',
+    darkText: 'text-[#18181B]',
+    borderCol: 'border-[#E5E5E0]',
     selfServe: false,
   },
 ];
@@ -154,15 +154,15 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#F7F6F2] text-black font-sans flex flex-col justify-between p-4 md:p-8">
+    <div className="min-h-screen w-full bg-[#F4F4EF] text-black font-sans flex flex-col justify-between p-4 md:p-8">
       <header className="relative z-20 max-w-7xl mx-auto w-full flex items-center justify-between py-2 px-2 md:px-4">
         <div className="flex items-center gap-2.5">
           <img src="/procurenext-logo.svg" alt="" className="h-10 w-auto" />
           <div className="flex flex-col">
-            <span className="text-xl font-black tracking-tight text-[#1B365D] leading-none">
+            <span className="text-xl font-black tracking-tight text-[#18181B] leading-none">
               procurenext
             </span>
-            <span className="text-[10px] text-[#6B6560] font-semibold tracking-wider uppercase mt-0.5">
+            <span className="text-[10px] text-[#6B7280] font-semibold tracking-wider uppercase mt-0.5">
               Government Procurement Portal
             </span>
           </div>
@@ -173,7 +173,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             setMode(mode === 'login' ? 'signup' : 'login');
             setError(null);
           }}
-          className="bg-white border-2 border-black shadow-[2px_2px_0px_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none text-black font-black text-xs uppercase px-5 py-2.5 rounded-full transition-all cursor-pointer"
+          className="bg-white border border-[#E5E5E0] hover:border-[#18181B] text-black font-black text-xs uppercase px-5 py-2.5 rounded-full transition-all cursor-pointer"
         >
           {mode === 'login' ? 'Sign up' : 'Sign in'}
         </button>
@@ -181,13 +181,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
       <main className="relative z-10 max-w-7xl mx-auto w-full my-6 flex flex-col items-center">
         <div className="text-center max-w-3xl mx-auto mb-8 space-y-3">
-          <div className="inline-flex items-center gap-2 bg-[#EAF7ED] text-[#1E9E5A] border border-[#B8E6C4] px-4 py-1 rounded-full font-extrabold text-xs uppercase tracking-widest">
+          <div className="inline-flex items-center gap-2 bg-[#D7FD44] text-[#18181B] px-4 py-1 rounded-full font-extrabold text-xs uppercase tracking-widest">
             <Sparkle className="w-3.5 h-3.5" /> Outcome-based public procurement
           </div>
 
           <h1 className="text-4xl md:text-5xl font-black tracking-tight text-black leading-tight">
             Run startup pilots with{' '}
-            <span className="inline-block bg-[#00E699] border-2 border-black shadow-[2px_2px_0px_#000] px-4 py-0.5 rounded-full">
+            <span className="inline-block bg-[#D7FD44] border border-[#E5E5E0] px-4 py-0.5 rounded-full">
               evidence
             </span>
           </h1>
@@ -198,7 +198,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           </p>
         </div>
 
-        <div className="w-full max-w-5xl bg-white border-2 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-3xl p-6 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="w-full max-w-5xl bg-white border border-[#E5E5E0] rounded-3xl p-6 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Roles — informational. The account's role comes from the server. */}
           <div className="lg:col-span-5 space-y-4 border-b lg:border-b-0 lg:border-r border-gray-200 pb-6 lg:pb-0 lg:pr-6">
             <div className="flex items-center justify-between">
@@ -253,7 +253,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           {/* Credentials */}
           <div className="lg:col-span-7 flex flex-col space-y-6">
             <div className="flex items-center justify-between border-b border-gray-200 pb-4">
-              <div className="flex bg-[#F7F6F2] p-1 rounded-2xl border border-black/20">
+              <div className="flex bg-[#F4F4EF] p-1 rounded-2xl border border-[#E5E5E0]">
                 {(['login', 'signup'] as const).map((m) => (
                   <button
                     key={m}
@@ -264,7 +264,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     }}
                     className={`px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
                       mode === m
-                        ? 'bg-[#00E699] text-black border border-black shadow-[1.5px_1.5px_0px_#000]'
+                        ? 'bg-[#D7FD44] text-black border border-black'
                         : 'text-gray-600 hover:text-black'
                     }`}
                   >
@@ -293,7 +293,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                       placeholder="e.g. Vikram Malhotra"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      className="w-full bg-[#F7F6F2] border border-gray-300 focus:border-black rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold text-black outline-none"
+                      className="w-full bg-[#F4F4EF] border border-[#E5E5E0] focus:border-[#18181B] rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold text-black outline-none"
                     />
                   </div>
                 </div>
@@ -316,7 +316,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     placeholder="you@department.gov.in"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-[#F7F6F2] border border-gray-300 focus:border-black rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold text-black outline-none"
+                    className="w-full bg-[#F4F4EF] border border-[#E5E5E0] focus:border-[#18181B] rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold text-black outline-none"
                   />
                 </div>
               </div>
@@ -340,7 +340,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     placeholder="••••••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-[#F7F6F2] border border-gray-300 focus:border-black rounded-xl pl-10 pr-10 py-2.5 text-xs font-bold text-black outline-none"
+                    className="w-full bg-[#F4F4EF] border border-[#E5E5E0] focus:border-[#18181B] rounded-xl pl-10 pr-10 py-2.5 text-xs font-bold text-black outline-none"
                   />
                   <button
                     type="button"
@@ -371,11 +371,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 disabled={isLoading}
                 whileHover={{ scale: isLoading ? 1 : 1.01 }}
                 whileTap={{ scale: 0.99 }}
-                className="w-full mt-2 py-3.5 px-6 rounded-full bg-[#00E699] text-black font-black uppercase tracking-wider text-xs border-2 border-black shadow-[3px_3px_0px_#000] flex items-center justify-center gap-2 cursor-pointer transition-all hover:bg-[#00D68D] active:shadow-none disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full mt-2 py-3.5 px-6 rounded-full bg-[#D7FD44] text-black font-black uppercase tracking-wider text-xs border border-[#E5E5E0] flex items-center justify-center gap-2 cursor-pointer transition-all hover:bg-[#C3EB30] disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                    <div className="w-4 h-4 border border-[#E5E5E0] border-t-transparent rounded-full animate-spin" />
                     <span>{mode === 'login' ? 'Signing in…' : 'Creating account…'}</span>
                   </>
                 ) : (

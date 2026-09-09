@@ -131,9 +131,9 @@ function NewApplicationForm() {
             {selectedPs && (
               <div
                 className="p-3.5 rounded-lg space-y-1.5 text-xs"
-                style={{ backgroundColor: '#F8F6F1', border: '1px solid #E8E2D5' }}
+                style={{ backgroundColor: '#F4F4EF', border: '1px solid #E5E5E0' }}
               >
-                <div className="text-[10px] font-bold uppercase tracking-wider text-[#A89F94]">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF]">
                   What this problem statement is measured on
                 </div>
                 <Detail label="Baseline" value={selectedPs.baseline} />
@@ -255,10 +255,10 @@ function NewApplicationForm() {
 
 const Detail: React.FC<{ label: string; value?: string | null }> = ({ label, value }) => (
   <div className="flex gap-2">
-    <span className="text-[10px] font-bold uppercase text-[#A89F94] w-32 shrink-0 pt-0.5">
+    <span className="text-[10px] font-bold uppercase text-[#9CA3AF] w-32 shrink-0 pt-0.5">
       {label}
     </span>
-    <span className="text-[#6B6560] flex-1">{value || '—'}</span>
+    <span className="text-[#6B7280] flex-1">{value || '—'}</span>
   </div>
 );
 

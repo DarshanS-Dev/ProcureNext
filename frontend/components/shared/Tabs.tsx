@@ -1,14 +1,18 @@
 'use client';
 
 /**
- * Tab strip whose selection lives in the URL (?tab=…), so a tab is linkable,
- * survives a reload, and works with the back button.
+ * Tab selection that lives in the URL (?tab=…), so a tab is linkable, survives
+ * a reload, and works with the back button.
+ *
+ * The strip itself is now `PillTabs` from the design system — the old
+ * underlined, role-tinted, uppercase strip is gone. `TabStrip` is kept as a
+ * thin alias so existing call sites (which still pass a `role`) keep working.
  */
 
 import React from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { UserRole } from '@/lib/types/api';
-import { ROLE_PALETTE } from '@/components/shared/DesignSystem';
+import { PillTabs } from '@/components/shared/design-system';
 
 export interface TabDef {
   id: string;
@@ -36,39 +40,8 @@ export const TabStrip: React.FC<{
   tabs: TabDef[];
   active: string;
   onChange: (id: string) => void;
-  role: UserRole;
-}> = ({ tabs, active, onChange, role }) => {
-  const palette = ROLE_PALETTE[role];
-
-  return (
-    <div
-      className="flex items-center gap-1.5 overflow-x-auto pb-px"
-      role="tablist"
-      style={{ borderBottom: '1px solid #E8E2D5' }}
-    >
-      {tabs.map((tab) => {
-        const isActive = tab.id === active;
-        return (
-          <button
-            key={tab.id}
-            role="tab"
-            aria-selected={isActive}
-            onClick={() => onChange(tab.id)}
-            className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider rounded-t-lg whitespace-nowrap transition-colors cursor-pointer"
-            style={
-              isActive
-                ? {
-                    backgroundColor: palette.tintBg,
-                    color: palette.accentText,
-                    borderBottom: `2px solid ${palette.accentText}`,
-                  }
-                : { color: '#6B6560', borderBottom: '2px solid transparent' }
-            }
-          >
-            {tab.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-};
+  /** Ignored — tabs no longer take a role colour. */
+  role?: UserRole;
+}> = ({ tabs, active, onChange }) => (
+  <PillTabs tabs={tabs} active={active} onChange={onChange} />
+);

@@ -47,7 +47,7 @@ const SnapshotNode: React.FC<{ label: string; value: unknown; depth?: number }> 
     if (value.length === 0) return <Leaf label={label} value="(empty)" depth={depth} />;
     return (
       <div style={{ marginLeft: depth * 12 }} className="py-1">
-        <div className="text-[10px] font-bold uppercase tracking-wider text-[#A89F94]">
+        <div className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF]">
           {humanize(label)} ({value.length})
         </div>
         <div className="mt-1 space-y-0.5">
@@ -63,12 +63,12 @@ const SnapshotNode: React.FC<{ label: string; value: unknown; depth?: number }> 
     const entries = Object.entries(value as Record<string, unknown>);
     return (
       <div style={{ marginLeft: depth * 12 }} className="py-1">
-        <div className="text-[10px] font-bold uppercase tracking-wider text-[#A89F94]">
+        <div className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF]">
           {humanize(label)}
         </div>
         <div
           className="mt-1 pl-3 space-y-0.5"
-          style={{ borderLeft: '2px solid #EDE7DB' }}
+          style={{ borderLeft: '2px solid #F0F0EA' }}
         >
           {entries.map(([k, v]) => (
             <SnapshotNode key={k} label={k} value={v} depth={depth} />
@@ -90,10 +90,10 @@ const Leaf: React.FC<{ label: string; value: string; depth: number }> = ({
     className="flex gap-3 py-1 border-b border-[#F5F1E8] last:border-b-0"
     style={{ marginLeft: depth * 12 }}
   >
-    <span className="text-[10px] font-bold uppercase tracking-wider text-[#A89F94] w-44 shrink-0 pt-0.5">
+    <span className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF] w-44 shrink-0 pt-0.5">
       {humanize(label)}
     </span>
-    <span className="text-xs text-[#1A1A1A] font-medium flex-1 break-words">{value}</span>
+    <span className="text-xs text-[#18181B] font-medium flex-1 break-words">{value}</span>
   </div>
 );
 
@@ -141,7 +141,7 @@ export default function ComplianceRecordPage() {
             title="Compile a new record"
             endpoint={`POST /admin/applications/${appId}/compliance-record`}
           />
-          <p className="text-xs text-[#6B6560] mb-3">
+          <p className="text-xs text-[#6B7280] mb-3">
             Compiling captures the state of this application right now — eligibility,
             checklist, scores, QCBS, risk, containment and the pilot trail. Existing
             records are never modified, so compiling again adds a new one.
@@ -191,10 +191,10 @@ export default function ComplianceRecordPage() {
               <DataCard key={record.id}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="text-sm font-bold text-[#1A1A1A]">
+                    <div className="text-sm font-bold text-[#18181B]">
                       Record #{record.id}
                     </div>
-                    <div className="text-[11px] text-[#6B6560]">
+                    <div className="text-[11px] text-[#6B7280]">
                       Compiled {fmtDateTime(record.generated_at)} by user #{record.generated_by} ·
                       PS #{record.problem_statement_id}
                     </div>
@@ -212,9 +212,9 @@ export default function ComplianceRecordPage() {
                 </div>
 
                 {isOpen && (
-                  <div className="mt-4 pt-4 border-t border-[#EDE7DB]">
+                  <div className="mt-4 pt-4 border-t border-[#F0F0EA]">
                     {Object.keys(record.snapshot ?? {}).length === 0 ? (
-                      <p className="text-xs text-[#6B6560]">The snapshot is empty.</p>
+                      <p className="text-xs text-[#6B7280]">The snapshot is empty.</p>
                     ) : (
                       <div className="space-y-1">
                         {Object.entries(record.snapshot).map(([k, v]) => (

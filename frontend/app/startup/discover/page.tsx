@@ -8,18 +8,13 @@
 
 import React, { useMemo, useState } from 'react';
 import { AppLayout } from '@/components/shared/AppLayout';
-import {
-  DataCard,
-  DocLinkButton,
-  DocSelect,
-  PageHeader,
-  StatusBadge,
-} from '@/components/shared/DesignSystem';
+import { DataCard, DocLinkButton, StatusBadge } from '@/components/shared/DesignSystem';
+import { PageHeader, PillTabs, StatPill } from '@/components/shared/design-system';
 import { ApiErrorState, EmptyState, LoadingBlock, fmtDate, humanize } from '@/components/shared/States';
 import { api } from '@/lib/api/client';
 import { useQuery } from '@/lib/hooks/useApi';
 import { CATEGORY_VALUES, CategoryEnum } from '@/lib/types/api';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight, Search, Sparkles } from 'lucide-react';
 
 export default function StartupDiscoverPage() {
   const psQuery = useQuery(() => api.getMatchedProblemStatements(), []);
@@ -45,37 +40,30 @@ export default function StartupDiscoverPage() {
     <AppLayout allow="startup">
       <div className="space-y-6">
         <PageHeader
-          title="Discover Problem Statements"
+          line1="Discover"
+          glyph={<Search className="w-5 h-5 text-[#18181B]" />}
+          line1Tail="Statements"
           subtitle="Every published problem statement. Ones matching your Level 2 capability description are flagged as recommended."
-          phase="Semantic matching"
-          role="startup"
-          breadcrumb={[{ label: 'Startup', href: '/startup/dashboard' }, { label: 'Discover' }]}
+          action={<StatPill tone="accent">{recommendedCount} recommended</StatPill>}
         />
 
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="w-56">
-            <label className="text-[11px] font-bold text-[#6B6560] uppercase tracking-wider">
-              Category
-            </label>
-            <DocSelect
-              value={category}
-              onChange={(e) => setCategory(e.target.value as CategoryEnum | '')}
-            >
-              <option value="">All categories</option>
-              {CATEGORY_VALUES.map((c) => (
-                <option key={c} value={c}>
-                  {humanize(c)}
-                </option>
-              ))}
-            </DocSelect>
-          </div>
+        {/* The seven categories are a closed enum, so chips are safe here. */}
+        <div className="space-y-3">
+          <PillTabs
+            active={category}
+            onChange={(id) => setCategory(id as CategoryEnum | '')}
+            tabs={[
+              { id: '', label: 'All categories' },
+              ...CATEGORY_VALUES.map((c) => ({ id: c, label: humanize(c) })),
+            ]}
+          />
 
-          <label className="flex items-center gap-2 text-xs font-bold text-[#6B6560] cursor-pointer pb-2.5">
+          <label className="inline-flex items-center gap-2 text-xs font-bold text-[#6B7280] cursor-pointer">
             <input
               type="checkbox"
               checked={onlyRecommended}
               onChange={(e) => setOnlyRecommended(e.target.checked)}
-              className="w-4 h-4 accent-[#1E9E5A] cursor-pointer"
+              className="w-4 h-4 accent-[#18181B] cursor-pointer"
             />
             Recommended only ({recommendedCount})
           </label>
@@ -100,27 +88,24 @@ export default function StartupDiscoverPage() {
             <DataCard key={ps.id} className="space-y-4 flex flex-col">
               <div className="flex items-start justify-between gap-2">
                 {ps.recommended ? (
-                  <span
-                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[11px] font-bold uppercase tracking-wide"
-                    style={{ backgroundColor: '#EAF7ED', color: '#1E9E5A', border: '1px solid #B8E6C4' }}
-                  >
+                  <StatPill tone="accent">
                     <Sparkles className="w-3 h-3" /> Recommended
-                  </span>
+                  </StatPill>
                 ) : (
                   <StatusBadge status="published" label="Open" />
                 )}
-                <span className="font-mono text-[11px] text-[#A89F94] shrink-0">PS #{ps.id}</span>
+                <span className="font-mono text-[11px] text-[#9CA3AF] shrink-0">PS #{ps.id}</span>
               </div>
 
               <div className="flex-1 space-y-1.5">
-                <h2 className="text-sm font-bold text-[#1A1A1A] leading-snug">{ps.title}</h2>
-                <p className="text-xs text-[#6B6560]">
+                <h2 className="text-sm font-bold text-[#18181B] leading-snug">{ps.title}</h2>
+                <p className="text-xs text-[#6B7280]">
                   {humanize(ps.category)}
                   {ps.budget_range ? ` · Budget ${humanize(ps.budget_range)}` : ''}
                   {ps.published_at ? ` · Published ${fmtDate(ps.published_at)}` : ''}
                 </p>
                 {ps.description && (
-                  <p className="text-xs text-[#6B6560] leading-relaxed line-clamp-3">
+                  <p className="text-xs text-[#6B7280] leading-relaxed line-clamp-3">
                     {ps.description}
                   </p>
                 )}
@@ -128,7 +113,7 @@ export default function StartupDiscoverPage() {
 
               <div
                 className="p-3 rounded-lg text-xs space-y-1"
-                style={{ backgroundColor: '#F8F6F1', border: '1px solid #E8E2D5' }}
+                style={{ backgroundColor: '#F4F4EF', border: '1px solid #E5E5E0' }}
               >
                 <Field label="Baseline" value={ps.baseline} />
                 <Field label="Target" value={ps.target} />
@@ -155,9 +140,9 @@ export default function StartupDiscoverPage() {
 
 const Field: React.FC<{ label: string; value?: string | null }> = ({ label, value }) => (
   <div className="flex gap-2">
-    <span className="text-[10px] font-bold uppercase text-[#A89F94] w-24 shrink-0 pt-0.5">
+    <span className="text-[10px] font-bold uppercase text-[#9CA3AF] w-24 shrink-0 pt-0.5">
       {label}
     </span>
-    <span className="text-[#6B6560] flex-1">{value || '—'}</span>
+    <span className="text-[#6B7280] flex-1">{value || '—'}</span>
   </div>
 );

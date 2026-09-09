@@ -55,8 +55,8 @@ export default function IndependentEvaluatorDashboardPage() {
                   {step.n}
                 </span>
                 <div>
-                  <div className="text-xs font-bold text-[#1A1A1A]">{step.title}</div>
-                  <p className="text-[11px] text-[#6B6560] leading-relaxed mt-0.5">{step.body}</p>
+                  <div className="text-xs font-bold text-[#18181B]">{step.title}</div>
+                  <p className="text-[11px] text-[#6B7280] leading-relaxed mt-0.5">{step.body}</p>
                 </div>
               </li>
             ))}

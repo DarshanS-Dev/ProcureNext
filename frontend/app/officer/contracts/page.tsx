@@ -114,7 +114,7 @@ export default function OfficerContractsPage() {
             refNumber="CON-REG"
             role="officer"
           >
-            <div className="pt-2 divide-y divide-[#EDE7DB]">
+            <div className="pt-2 divide-y divide-[#F0F0EA]">
               {rows.map(({ contract, app, ps }) => (
                 <div
                   key={contract.id}
@@ -123,12 +123,12 @@ export default function OfficerContractsPage() {
                   <div className="min-w-0 space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <StatusBadge status={app.status} />
-                      <span className="font-mono text-[11px] text-[#A89F94]">
+                      <span className="font-mono text-[11px] text-[#9CA3AF]">
                         CONTRACT #{contract.id} · APP #{app.id}
                       </span>
                     </div>
-                    <div className="font-bold text-sm text-[#1A1A1A] truncate">{ps.title}</div>
-                    <div className="text-[11px] text-[#6B6560]">
+                    <div className="font-bold text-sm text-[#18181B] truncate">{ps.title}</div>
+                    <div className="text-[11px] text-[#6B7280]">
                       Startup #{app.startup_id} · raised {fmtDateTime(contract.created_at)} ·{' '}
                       {contract.signed_at ? `signed ${fmtDateTime(contract.signed_at)}` : 'not signed'}
                     </div>

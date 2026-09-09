@@ -76,12 +76,12 @@ export default function AdminUsersPage() {
               <div
                 key={r}
                 className="px-3 py-2.5 rounded-xl bg-white text-center"
-                style={{ border: '1px solid #E8E2D5' }}
+                style={{ border: '1px solid #E5E5E0' }}
               >
-                <div className="text-2xl font-black text-[#1A1A1A] tabular-nums">
+                <div className="text-2xl font-black text-[#18181B] tabular-nums">
                   {usersQuery.data ? (counts.get(r) ?? 0) : '—'}
                 </div>
-                <div className="text-[9px] font-bold uppercase tracking-wider text-[#A89F94] mt-0.5">
+                <div className="text-[9px] font-bold uppercase tracking-wider text-[#9CA3AF] mt-0.5">
                   {ROLE_LABELS[r]}
                 </div>
               </div>
@@ -177,7 +177,7 @@ export default function AdminUsersPage() {
 
         <div className="flex flex-wrap gap-3">
           <div className="w-56">
-            <label className="text-[11px] font-bold text-[#6B6560] uppercase tracking-wider">
+            <label className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">
               Role
             </label>
             <DocSelect
@@ -193,7 +193,7 @@ export default function AdminUsersPage() {
             </DocSelect>
           </div>
           <div className="w-64">
-            <label className="text-[11px] font-bold text-[#6B6560] uppercase tracking-wider">
+            <label className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">
               Search
             </label>
             <DocInput
@@ -219,13 +219,13 @@ export default function AdminUsersPage() {
             refNumber="USR-REG"
             role="admin"
           >
-            <div className="pt-2 divide-y divide-[#EDE7DB]">
+            <div className="pt-2 divide-y divide-[#F0F0EA]">
               {visible.map((u) => (
                 <div key={u.id} className="flex items-center justify-between gap-3 py-3.5">
                   <div className="min-w-0">
-                    <div className="text-xs font-bold text-[#1A1A1A] truncate">{u.name}</div>
-                    <div className="text-[11px] text-[#6B6560] truncate">{u.email}</div>
-                    <div className="text-[10px] text-[#A89F94] font-mono">
+                    <div className="text-xs font-bold text-[#18181B] truncate">{u.name}</div>
+                    <div className="text-[11px] text-[#6B7280] truncate">{u.email}</div>
+                    <div className="text-[10px] text-[#9CA3AF] font-mono">
                       #{u.id} · joined {fmtDateTime(u.created_at)}
                     </div>
                   </div>

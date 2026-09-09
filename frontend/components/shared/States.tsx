@@ -18,13 +18,11 @@ export const LoadingBlock: React.FC<{ label?: string; rows?: number }> = ({
   rows = 3,
 }) => (
   <div className="space-y-3" role="status" aria-live="polite">
-    <div className="text-[11px] font-bold uppercase tracking-wider text-[#A89F94]">
-      {label}
-    </div>
+    <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400">{label}</div>
     {Array.from({ length: rows }).map((_, i) => (
       <div
         key={i}
-        className="h-12 rounded-lg bg-[#F1EDE4] animate-pulse"
+        className="h-14 rounded-3xl bg-[#F0F0EA] animate-pulse"
         style={{ animationDelay: `${i * 90}ms` }}
       />
     ))}
@@ -36,11 +34,17 @@ export const EmptyState: React.FC<{
   hint?: string;
   action?: React.ReactNode;
 }> = ({ title, hint, action }) => (
-  <div className="p-10 text-center space-y-2 bg-white border border-[#EDE7DB] rounded-xl">
-    <FileX2 className="w-8 h-8 text-[#A89F94] mx-auto" />
-    <div className="font-bold text-sm text-[#1A1A1A]">{title}</div>
-    {hint && <div className="text-xs text-[#6B6560] max-w-md mx-auto">{hint}</div>}
-    {action && <div className="pt-2">{action}</div>}
+  <div className="p-10 text-center flex flex-col items-center gap-3 bg-white border border-[#E5E5E0] rounded-3xl">
+    <span className="w-11 h-11 rounded-full bg-[#F3F3EE] text-[#18181B] flex items-center justify-center">
+      <FileX2 className="w-5 h-5" />
+    </span>
+    <div className="space-y-1">
+      <div className="font-bold text-sm text-[#18181B]">{title}</div>
+      {hint && (
+        <div className="text-xs text-gray-500 max-w-md mx-auto leading-relaxed">{hint}</div>
+      )}
+    </div>
+    {action}
   </div>
 );
 

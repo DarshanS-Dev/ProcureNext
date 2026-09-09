@@ -331,7 +331,7 @@ const DetailsTab: React.FC<{
             title="AI assist"
             endpoint={`POST /problem-statements/${ps.id}/ai-assist`}
           />
-          <p className="text-xs text-[#6B6560] mb-3">
+          <p className="text-xs text-[#6B7280] mb-3">
             Advisory only — it writes nothing and never blocks publishing. Paste the
             rough version and it tells you whether it reads as an outcome or a spec.
           </p>
@@ -559,11 +559,11 @@ const SuggestionRow: React.FC<{ label: string; value: string; onUse: () => void 
 }) => (
   <div
     className="p-3 rounded-lg flex items-start justify-between gap-3"
-    style={{ backgroundColor: '#F8F6F1', border: '1px solid #E8E2D5' }}
+    style={{ backgroundColor: '#F4F4EF', border: '1px solid #E5E5E0' }}
   >
     <div className="min-w-0">
-      <div className="text-[10px] font-bold uppercase tracking-wider text-[#A89F94]">{label}</div>
-      <p className="text-xs text-[#1A1A1A] leading-relaxed mt-0.5">{value}</p>
+      <div className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF]">{label}</div>
+      <p className="text-xs text-[#18181B] leading-relaxed mt-0.5">{value}</p>
     </div>
     <DocButton size="sm" variant="ghost" onClick={onUse}>
       Use
@@ -586,7 +586,7 @@ const KPIsTab: React.FC<{ psId: number; canEdit: boolean }> = ({ psId, canEdit }
     <DataCard>
       <PanelHeading title="KPIs" endpoint={`GET /problem-statements/${psId}/kpis`} />
 
-      <p className="text-xs text-[#6B6560] mb-4">
+      <p className="text-xs text-[#6B7280] mb-4">
         These are what an independent evaluator records a met / not-met verdict
         against once the pilot is running. Add them before the pilot starts.
       </p>
@@ -598,11 +598,11 @@ const KPIsTab: React.FC<{ psId: number; canEdit: boolean }> = ({ psId, canEdit }
         <EmptyState title="No KPIs defined yet" hint="Without KPIs there is nothing to verify at the end of the pilot." />
       )}
 
-      <div className="divide-y divide-[#F1EDE4]">
+      <div className="divide-y divide-[#F0F0EA]">
         {(query.data ?? []).map((kpi) => (
           <div key={kpi.id} className="py-3">
-            <div className="text-xs font-bold text-[#1A1A1A]">{kpi.name}</div>
-            <div className="text-[11px] text-[#6B6560] mt-0.5">
+            <div className="text-xs font-bold text-[#18181B]">{kpi.name}</div>
+            <div className="text-[11px] text-[#6B7280] mt-0.5">
               Baseline {kpi.baseline || '—'} → target {kpi.target || '—'}
               {kpi.measurement_method ? ` · measured by ${kpi.measurement_method}` : ''}
             </div>
@@ -702,12 +702,12 @@ const EvaluatorsTab: React.FC<{ psId: number }> = ({ psId }) => {
           />
         )}
 
-        <div className="divide-y divide-[#F1EDE4]">
+        <div className="divide-y divide-[#F0F0EA]">
           {(query.data ?? []).map((a) => (
             <div key={a.id} className="py-3 flex items-center justify-between gap-3">
               <div>
-                <div className="text-xs font-bold text-[#1A1A1A]">Evaluator #{a.evaluator_id}</div>
-                <div className="text-[11px] text-[#6B6560]">
+                <div className="text-xs font-bold text-[#18181B]">Evaluator #{a.evaluator_id}</div>
+                <div className="text-[11px] text-[#6B7280]">
                   Assigned by user #{a.assigned_by} on {fmtDateTime(a.assigned_at)}
                 </div>
               </div>
@@ -736,7 +736,7 @@ const MatchingTab: React.FC<{ psId: number; canInvite: boolean }> = ({ psId, can
           title="Semantic matches"
           endpoint={`GET /problem-statements/${psId}/matches`}
         />
-        <p className="text-xs text-[#6B6560] mb-3">
+        <p className="text-xs text-[#6B7280] mb-3">
           Startups ranked by how well their Level 2 capability description matches
           this problem statement. Inviting one is a nudge, not a shortlist — anyone
           can still apply.
@@ -779,12 +779,12 @@ const MatchingTab: React.FC<{ psId: number; canInvite: boolean }> = ({ psId, can
             return (
               <div key={m.startup_id} className="py-3 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="text-sm font-black text-[#A89F94] tabular-nums w-6 shrink-0">
+                  <span className="text-sm font-black text-[#9CA3AF] tabular-nums w-6 shrink-0">
                     #{m.rank}
                   </span>
                   <div className="min-w-0">
-                    <div className="text-xs font-bold text-[#1A1A1A] truncate">{m.name}</div>
-                    <div className="text-[11px] text-[#6B6560]">Startup #{m.startup_id}</div>
+                    <div className="text-xs font-bold text-[#18181B] truncate">{m.name}</div>
+                    <div className="text-[11px] text-[#6B7280]">Startup #{m.startup_id}</div>
                   </div>
                   {m.recommended && <StatusBadge status="success" label="Recommended" />}
                 </div>
@@ -909,12 +909,12 @@ const ApplicationsTab: React.FC<{ psId: number }> = ({ psId }) => {
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <StatusBadge status={app.status} />
-                <span className="font-mono text-[11px] text-[#A89F94]">APP #{app.id}</span>
+                <span className="font-mono text-[11px] text-[#9CA3AF]">APP #{app.id}</span>
               </div>
-              <div className="text-xs font-bold text-[#1A1A1A] mt-1 truncate">
+              <div className="text-xs font-bold text-[#18181B] mt-1 truncate">
                 {(app.technical_proposal?.title as string | undefined) ?? `Application #${app.id}`}
               </div>
-              <div className="text-[11px] text-[#6B6560]">
+              <div className="text-[11px] text-[#6B7280]">
                 Startup #{app.startup_id} · submitted {fmtDateTime(app.created_at)}
               </div>
             </div>
@@ -965,7 +965,7 @@ const RankingTab: React.FC<{ psId: number }> = ({ psId }) => {
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="text-[10px] font-bold uppercase tracking-wider text-[#A89F94] text-left">
+              <tr className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF] text-left">
                 <th className="pb-2 pr-3">Rank</th>
                 <th className="pb-2 pr-3">Application</th>
                 <th className="pb-2 pr-3">Startup</th>
@@ -975,7 +975,7 @@ const RankingTab: React.FC<{ psId: number }> = ({ psId }) => {
                 <th className="pb-2" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#F1EDE4]">
+            <tbody className="divide-y divide-[#F0F0EA]">
               {query.data.rankings.map((row) => (
                 <tr key={row.application_id}>
                   <td className="py-2.5 pr-3 font-black text-sm tabular-nums">{row.rank}</td>

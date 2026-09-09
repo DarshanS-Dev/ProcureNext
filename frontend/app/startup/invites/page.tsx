@@ -68,7 +68,7 @@ export default function StartupInvitesPage() {
             refNumber="INV-REG"
             role="startup"
           >
-            <div className="pt-2 divide-y divide-[#EDE7DB]">
+            <div className="pt-2 divide-y divide-[#F0F0EA]">
               {invitesQuery.data.map((inv) => {
                 const ps = psById.get(inv.problem_statement_id);
                 return (
@@ -79,15 +79,15 @@ export default function StartupInvitesPage() {
                     <div className="space-y-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <StatusBadge status="info" label="Invited" />
-                        <span className="font-mono text-[11px] text-[#A89F94]">
+                        <span className="font-mono text-[11px] text-[#9CA3AF]">
                           PS #{inv.problem_statement_id}
                         </span>
                         {ps && <StatusBadge status={ps.status} />}
                       </div>
-                      <div className="font-bold text-sm text-[#1A1A1A]">
+                      <div className="font-bold text-sm text-[#18181B]">
                         {ps ? ps.title : `Problem statement #${inv.problem_statement_id}`}
                       </div>
-                      <div className="text-[11px] text-[#6B6560]">
+                      <div className="text-[11px] text-[#6B7280]">
                         {ps ? `${humanize(ps.category)} · ` : ''}
                         Invited {fmtDateTime(inv.invited_at)}
                       </div>

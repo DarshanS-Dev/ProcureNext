@@ -70,8 +70,8 @@ export default function EvaluatorAssignedPage() {
         <DataCard>
           <div className="space-y-3">
             <div>
-              <h3 className="text-sm font-bold text-[#1A1A1A]">Open an application</h3>
-              <p className="text-xs text-[#6B6560] mt-0.5">
+              <h3 className="text-sm font-bold text-[#18181B]">Open an application</h3>
+              <p className="text-xs text-[#6B7280] mt-0.5">
                 Enter the application id you were asked to score. The API does not
                 expose a list of applications to evaluators, so the officer running
                 the problem statement supplies the ids.
@@ -124,22 +124,22 @@ export default function EvaluatorAssignedPage() {
             <DataCard key={ps.id} className="space-y-3">
               <div className="flex items-start justify-between gap-2">
                 <StatusBadge status={ps.status} />
-                <span className="font-mono text-[11px] text-[#A89F94]">PS #{ps.id}</span>
+                <span className="font-mono text-[11px] text-[#9CA3AF]">PS #{ps.id}</span>
               </div>
               <div>
-                <h3 className="text-sm font-bold text-[#1A1A1A] leading-snug">{ps.title}</h3>
-                <p className="text-[11px] text-[#6B6560] mt-0.5">
+                <h3 className="text-sm font-bold text-[#18181B] leading-snug">{ps.title}</h3>
+                <p className="text-[11px] text-[#6B7280] mt-0.5">
                   {humanize(ps.category)} · created {fmtDate(ps.created_at)}
                 </p>
               </div>
               {ps.description && (
-                <p className="text-xs text-[#6B6560] leading-relaxed line-clamp-3">
+                <p className="text-xs text-[#6B7280] leading-relaxed line-clamp-3">
                   {ps.description}
                 </p>
               )}
               <div
-                className="p-2.5 rounded-lg text-[11px] text-[#6B6560]"
-                style={{ backgroundColor: '#F8F6F1', border: '1px solid #E8E2D5' }}
+                className="p-2.5 rounded-lg text-[11px] text-[#6B7280]"
+                style={{ backgroundColor: '#F4F4EF', border: '1px solid #E5E5E0' }}
               >
                 <span className="font-bold">Success condition:</span>{' '}
                 {ps.success_condition || 'Not stated'}

@@ -172,7 +172,7 @@ const COIPanel: React.FC<{
                 : 'You are cleared to score this application.'
             }
           />
-          <p className="text-[11px] text-[#A89F94]">
+          <p className="text-[11px] text-[#9CA3AF]">
             Declared {fmtDateTime(declaration.declared_at)}. Declarations are final —
             there is no resubmission path.
           </p>
@@ -181,7 +181,7 @@ const COIPanel: React.FC<{
 
       {!declaration && !loading && (
         <div className="space-y-4">
-          <p className="text-xs text-[#6B6560] leading-relaxed">
+          <p className="text-xs text-[#6B7280] leading-relaxed">
             Mandatory before scoring. Declare a conflict if you have any financial,
             employment, advisory or personal relationship with this startup.{' '}
             <span className="font-bold">
@@ -328,7 +328,7 @@ const ScoringForm: React.FC<{ appId: number; declared: boolean; recused: boolean
             });
           }}
         >
-          <p className="text-xs text-[#6B6560]">
+          <p className="text-xs text-[#6B7280]">
             All {rows.length} criteria are submitted together in a single call, and
             cannot be revised afterwards. Total rubric weight is {totalWeight.toFixed(2)}.
           </p>
@@ -338,12 +338,12 @@ const ScoringForm: React.FC<{ appId: number; declared: boolean; recused: boolean
               <div
                 key={c.id}
                 className="p-4 rounded-lg space-y-2.5"
-                style={{ backgroundColor: '#FDFBF7', border: '1px solid #E8E2D5' }}
+                style={{ backgroundColor: '#F8F8F4', border: '1px solid #E5E5E0' }}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="text-xs font-bold text-[#1A1A1A]">{c.name}</div>
-                    <div className="text-[10px] text-[#A89F94]">
+                    <div className="text-xs font-bold text-[#18181B]">{c.name}</div>
+                    <div className="text-[10px] text-[#9CA3AF]">
                       Weight {c.weight}
                       {c.category ? ` · ${humanize(c.category)}` : ' · all categories'}
                     </div>
@@ -422,7 +422,7 @@ const ScoringForm: React.FC<{ appId: number; declared: boolean; recused: boolean
           </DocButton>
 
           {!complete && !locked && (
-            <p className="text-[11px] text-[#A89F94]">
+            <p className="text-[11px] text-[#9CA3AF]">
               Every criterion needs a score and a justification before this can be
               submitted.
             </p>

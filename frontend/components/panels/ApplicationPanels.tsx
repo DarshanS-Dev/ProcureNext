@@ -71,19 +71,19 @@ export const PanelHeading: React.FC<{
 }> = ({ title, endpoint, right }) => (
   <div className="flex items-start justify-between gap-3 mb-4">
     <div>
-      <h3 className="text-sm font-bold text-[#1A1A1A]">{title}</h3>
-      <p className="font-mono text-[10px] text-[#A89F94] mt-0.5">{endpoint}</p>
+      <h3 className="text-sm font-bold text-[#18181B]">{title}</h3>
+      <p className="font-mono text-[10px] text-[#9CA3AF] mt-0.5">{endpoint}</p>
     </div>
     {right}
   </div>
 );
 
 const KeyValue: React.FC<{ label: string; value?: React.ReactNode }> = ({ label, value }) => (
-  <div className="flex gap-3 py-1.5 border-b border-[#F1EDE4] last:border-b-0">
-    <span className="text-[10px] font-bold uppercase tracking-wider text-[#A89F94] w-40 shrink-0 pt-0.5">
+  <div className="flex gap-3 py-1.5 border-b border-[#F0F0EA] last:border-b-0">
+    <span className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF] w-40 shrink-0 pt-0.5">
       {label}
     </span>
-    <span className="text-xs text-[#1A1A1A] font-medium flex-1 break-words">
+    <span className="text-xs text-[#18181B] font-medium flex-1 break-words">
       {value === undefined || value === null || value === '' ? '—' : value}
     </span>
   </div>
@@ -91,8 +91,8 @@ const KeyValue: React.FC<{ label: string; value?: React.ReactNode }> = ({ label,
 
 const RISK_COLORS: Record<RiskLevelEnum, { bg: string; text: string; border: string }> = {
   low: { bg: '#EAF7ED', text: '#1E9E5A', border: '#B8E6C4' },
-  medium: { bg: '#FDF3DC', text: '#B8860B', border: '#F7E1B5' },
-  high: { bg: '#FEF2F2', text: '#DC2626', border: '#FECACA' },
+  medium: { bg: '#FEF6E7', text: '#B45309', border: '#FEF6E7' },
+  high: { bg: '#FBEAEC', text: '#C81E4A', border: '#F3BECA' },
 };
 
 const MutationFeedback: React.FC<{ state: ReturnType<typeof useMutation> }> = ({ state }) => (
@@ -192,7 +192,7 @@ export const EligibilityPanel: React.FC<{ appId: number; canReview?: boolean }> 
           {canReview && (
             <form onSubmit={submit} className="mt-4 space-y-4">
               <SectionDivider label="Officer review" />
-              <p className="text-[11px] text-[#6B6560]">
+              <p className="text-[11px] text-[#6B7280]">
                 Only these two fields are officer-set. The DPIIT, entity and PAN/GST
                 values are a snapshot of verified compliance data and cannot be
                 edited here.
@@ -200,7 +200,7 @@ export const EligibilityPanel: React.FC<{ appId: number; canReview?: boolean }> 
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <label className="space-y-1 block">
-                  <span className="text-[11px] font-bold text-[#6B6560] uppercase tracking-wider">
+                  <span className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">
                     Sector eligible
                   </span>
                   <DocSelect
@@ -215,7 +215,7 @@ export const EligibilityPanel: React.FC<{ appId: number; canReview?: boolean }> 
                 </label>
 
                 <label className="space-y-1 block">
-                  <span className="text-[11px] font-bold text-[#6B6560] uppercase tracking-wider">
+                  <span className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">
                     Certification check
                   </span>
                   <DocSelect
@@ -320,13 +320,13 @@ export const ChecklistPanel: React.FC<{
 
       <MutationFeedback state={action} />
 
-      <div className="divide-y divide-[#F1EDE4]">
+      <div className="divide-y divide-[#F0F0EA]">
         {items.map((item) => (
           <div key={item.id} className="py-3.5 space-y-2">
             <div className="flex items-start justify-between gap-3 flex-wrap">
               <div className="min-w-0">
-                <div className="text-xs font-bold text-[#1A1A1A]">{item.document_name}</div>
-                <div className="text-[11px] text-[#6B6560]">
+                <div className="text-xs font-bold text-[#18181B]">{item.document_name}</div>
+                <div className="text-[11px] text-[#6B7280]">
                   {item.file_reference ? (
                     <span className="font-mono break-all">{item.file_reference}</span>
                   ) : (
@@ -334,7 +334,7 @@ export const ChecklistPanel: React.FC<{
                   )}
                 </div>
                 {item.reviewed_at && (
-                  <div className="text-[10px] text-[#A89F94]">
+                  <div className="text-[10px] text-[#9CA3AF]">
                     Reviewed {fmtDateTime(item.reviewed_at)} by user #{item.reviewed_by}
                   </div>
                 )}
@@ -403,7 +403,7 @@ export const ChecklistPanel: React.FC<{
       </div>
 
       {canUpload && (
-        <p className="text-[10px] text-[#A89F94] italic mt-3">
+        <p className="text-[10px] text-[#9CA3AF] italic mt-3">
           The backend stores a reference string, not the file itself — there is no
           upload endpoint. Paste the URL or storage key where the document lives.
         </p>
@@ -518,19 +518,19 @@ export const ScoresPanel: React.FC<{ appId: number; showCompleteness?: boolean }
                   return (
                     <div key={row.id} className="py-2.5 flex gap-3">
                       <div className="flex-1 min-w-0">
-                        <div className="text-xs font-semibold text-[#1A1A1A]">
+                        <div className="text-xs font-semibold text-[#18181B]">
                           {criterion?.name ?? `Criterion #${row.criterion_id}`}
                           {criterion && (
-                            <span className="text-[10px] font-normal text-[#A89F94] ml-1.5">
+                            <span className="text-[10px] font-normal text-[#9CA3AF] ml-1.5">
                               weight {criterion.weight}
                             </span>
                           )}
                         </div>
-                        <p className="text-[11px] text-[#6B6560] leading-relaxed mt-0.5">
+                        <p className="text-[11px] text-[#6B7280] leading-relaxed mt-0.5">
                           {row.justification}
                         </p>
                       </div>
-                      <div className="text-sm font-black text-[#1A1A1A] shrink-0 tabular-nums">
+                      <div className="text-sm font-black text-[#18181B] shrink-0 tabular-nums">
                         {row.score}
                       </div>
                     </div>
@@ -576,16 +576,16 @@ export const QCBSPanel: React.FC<{ appId: number }> = ({ appId }) => {
               key={cell.label}
               className="p-4 rounded-lg text-center"
               style={{
-                backgroundColor: cell.emphasis ? '#EAF7ED' : '#F8F6F1',
-                border: `1px solid ${cell.emphasis ? '#B8E6C4' : '#E8E2D5'}`,
+                backgroundColor: cell.emphasis ? '#EAF7ED' : '#F4F4EF',
+                border: `1px solid ${cell.emphasis ? '#B8E6C4' : '#E5E5E0'}`,
               }}
             >
-              <div className="text-[10px] font-bold uppercase tracking-wider text-[#A89F94]">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF]">
                 {cell.label}
               </div>
               <div
                 className="text-2xl font-black mt-1 tabular-nums"
-                style={{ color: cell.emphasis ? '#1E9E5A' : '#1A1A1A' }}
+                style={{ color: cell.emphasis ? '#1E9E5A' : '#18181B' }}
               >
                 {cell.value.toFixed(2)}
               </div>
@@ -649,10 +649,10 @@ export const RiskProfilePanel: React.FC<{ appId: number }> = ({ appId }) => {
         {(query.data ?? []).map((profile) => (
           <div key={profile.id} className="space-y-2.5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#1A1A1A]">
+              <span className="text-xs font-bold text-[#18181B]">
                 {humanize(profile.stage)} profile
               </span>
-              <span className="text-[10px] text-[#A89F94]">
+              <span className="text-[10px] text-[#9CA3AF]">
                 Computed {fmtDateTime(profile.computed_at)}
               </span>
             </div>
@@ -680,7 +680,7 @@ export const RiskProfilePanel: React.FC<{ appId: number }> = ({ appId }) => {
                       border: isOverall ? `2px solid ${colors.text}` : 'none',
                     }}
                   >
-                    <div className="text-[9px] font-bold uppercase tracking-wider text-[#A89F94]">
+                    <div className="text-[9px] font-bold uppercase tracking-wider text-[#9CA3AF]">
                       {label}
                     </div>
                     <div
@@ -791,7 +791,7 @@ export const ContainmentPlanPanel: React.FC<{ appId: number; canEdit?: boolean }
         <EmptyState title="No containment plan filed yet" hint="The owning officer files this before selection." />
       )}
       {query.error?.isNotFound && canEdit && !query.data && (
-        <p className="text-xs text-[#6B6560] mb-3">
+        <p className="text-xs text-[#6B7280] mb-3">
           No containment plan filed yet. Fill in the required fields below or use AI assist to generate a draft.
         </p>
       )}
@@ -808,7 +808,7 @@ export const ContainmentPlanPanel: React.FC<{ appId: number; canEdit?: boolean }
       {canEdit && !query.loading && (
         <form onSubmit={submit} className="space-y-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <p className="text-[11px] text-[#6B6560] flex-1">
+            <p className="text-[11px] text-[#6B7280] flex-1">
               A final risk profile must exist before this can be filed — the server
               rejects it otherwise. Submitting again updates the existing plan.
             </p>
@@ -831,7 +831,7 @@ export const ContainmentPlanPanel: React.FC<{ appId: number; canEdit?: boolean }
 
           {CONTAINMENT_FIELDS.map((f) => (
             <label key={f.key} className="space-y-1 block">
-              <span className="text-[11px] font-bold text-[#6B6560] uppercase tracking-wider">
+              <span className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">
                 {f.label}
               </span>
               <DocTextarea
@@ -954,11 +954,11 @@ export const DecisionReadinessPanel: React.FC<{
                   {ok ? (
                     <CheckCircle2 className="w-4 h-4 text-[#1E9E5A] shrink-0" />
                   ) : (
-                    <CircleDashed className="w-4 h-4 text-[#A89F94] shrink-0" />
+                    <CircleDashed className="w-4 h-4 text-[#9CA3AF] shrink-0" />
                   )}
                   <span
                     className="text-xs font-semibold"
-                    style={{ color: ok ? '#1E9E5A' : '#6B6560' }}
+                    style={{ color: ok ? '#1E9E5A' : '#6B7280' }}
                   >
                     {check.label}
                   </span>
@@ -973,14 +973,14 @@ export const DecisionReadinessPanel: React.FC<{
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="text-[10px] font-bold uppercase tracking-wider text-[#A89F94] text-left">
+                    <tr className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF] text-left">
                       <th className="pb-2 pr-3">Evaluator ID</th>
                       <th className="pb-2 pr-3">Conflict Declared</th>
                       <th className="pb-2 pr-3">Recused</th>
                       <th className="pb-2 pr-3">Declared At</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#F1EDE4]">
+                  <tbody className="divide-y divide-[#F0F0EA]">
                     {coiList.map((coi) => (
                       <tr key={coi.id}>
                         <td className="py-2 pr-3 font-mono">User #{coi.evaluator_id}</td>
@@ -996,7 +996,7 @@ export const DecisionReadinessPanel: React.FC<{
                             label={coi.recused ? 'Recused' : 'Active'}
                           />
                         </td>
-                        <td className="py-2 pr-3 text-[#6B6560]">{fmtDateTime(coi.declared_at)}</td>
+                        <td className="py-2 pr-3 text-[#6B7280]">{fmtDateTime(coi.declared_at)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1009,7 +1009,7 @@ export const DecisionReadinessPanel: React.FC<{
             <div className="mt-4 space-y-3">
               <SectionDivider label="Selection" />
               <MutationFeedback state={select} />
-              <p className="text-[11px] text-[#6B6560]">
+              <p className="text-[11px] text-[#6B7280]">
                 Selecting records a SelectionDecision and moves the application to
                 <span className="font-bold"> selected</span>. The server re-checks every
                 gate above and refuses if any fails.
@@ -1173,7 +1173,7 @@ export const SandboxTrialPanel: React.FC<{ appId: number; canRecord?: boolean }>
         >
           <SectionDivider label="Finalise trial" />
           <label className="space-y-1 block">
-            <span className="text-[11px] font-bold text-[#6B6560] uppercase tracking-wider">
+            <span className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">
               Verdict
             </span>
             <DocSelect
@@ -1230,7 +1230,7 @@ export const SandboxTrialPanel: React.FC<{ appId: number; canRecord?: boolean }>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {SANDBOX_CHECKS.map((c) => (
               <label key={c.key} className="space-y-1 block">
-                <span className="text-[11px] font-bold text-[#6B6560] uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">
                   {c.label}
                 </span>
                 <DocSelect
@@ -1247,7 +1247,7 @@ export const SandboxTrialPanel: React.FC<{ appId: number; canRecord?: boolean }>
           </div>
 
           <label className="space-y-1 block">
-            <span className="text-[11px] font-bold text-[#6B6560] uppercase tracking-wider">
+            <span className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">
               Verification mode
             </span>
             <DocSelect
@@ -1398,7 +1398,7 @@ export const ContractPanel: React.FC<{
       {canCreate && !query.data && !query.loading && (
         <div className="space-y-3">
           {query.error?.isNotFound && (
-            <p className="text-xs text-[#6B6560]">
+            <p className="text-xs text-[#6B7280]">
               No contract exists yet. Clauses are derived server-side from the problem
               statement&apos;s category — there is nothing to fill in.
             </p>
@@ -1521,13 +1521,13 @@ export const MilestonesPanel: React.FC<{
           <div key={m.id} className="py-4 space-y-3">
             <div className="flex items-start justify-between gap-3 flex-wrap">
               <div>
-                <div className="text-xs font-bold text-[#1A1A1A]">
+                <div className="text-xs font-bold text-[#18181B]">
                   {m.display_name || humanize(m.milestone_type)}
                 </div>
-                <div className="text-[10px] text-[#A89F94] font-mono">
+                <div className="text-[10px] text-[#9CA3AF] font-mono">
                   {humanize(m.milestone_type)} · milestone #{m.id}
                 </div>
-                <div className="text-[11px] text-[#6B6560] mt-0.5">
+                <div className="text-[11px] text-[#6B7280] mt-0.5">
                   Due {fmtDate(m.due_date)}
                   {m.target_value ? ` · Target ${m.target_value} ${m.target_unit ?? ''}` : ''}
                   {m.submitted_value ? ` · Submitted ${m.submitted_value}` : ''}
@@ -1831,20 +1831,20 @@ export const KPIVerdictsPanel: React.FC<{
           return (
             <div key={v.id} className="py-3.5 flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="text-xs font-bold text-[#1A1A1A]">
+                <div className="text-xs font-bold text-[#18181B]">
                   {kpi?.name ?? `KPI #${v.kpi_id}`}
                 </div>
                 {kpi && (
-                  <div className="text-[11px] text-[#6B6560]">
+                  <div className="text-[11px] text-[#6B7280]">
                     Baseline {kpi.baseline || '—'} → target {kpi.target || '—'}
                   </div>
                 )}
                 {v.justification && (
-                  <p className="text-[11px] text-[#6B6560] leading-relaxed mt-1">
+                  <p className="text-[11px] text-[#6B7280] leading-relaxed mt-1">
                     {v.justification}
                   </p>
                 )}
-                <div className="text-[10px] text-[#A89F94] mt-0.5">
+                <div className="text-[10px] text-[#9CA3AF] mt-0.5">
                   {humanize(v.verification_mode)} · verified by user #{v.verified_by} on{' '}
                   {fmtDateTime(v.verified_at)}
                 </div>
@@ -1894,7 +1894,7 @@ export const KPIVerdictsPanel: React.FC<{
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <label className="space-y-1 block sm:col-span-3">
-              <span className="text-[11px] font-bold text-[#6B6560] uppercase tracking-wider">
+              <span className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">
                 KPI
               </span>
               <DocSelect value={kpiId} onChange={(e) => setKpiId(e.target.value)} required>
@@ -1908,7 +1908,7 @@ export const KPIVerdictsPanel: React.FC<{
             </label>
 
             <label className="space-y-1 block">
-              <span className="text-[11px] font-bold text-[#6B6560] uppercase tracking-wider">
+              <span className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">
                 Verdict
               </span>
               <DocSelect
@@ -1921,7 +1921,7 @@ export const KPIVerdictsPanel: React.FC<{
             </label>
 
             <label className="space-y-1 block sm:col-span-2">
-              <span className="text-[11px] font-bold text-[#6B6560] uppercase tracking-wider">
+              <span className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">
                 Verification mode
               </span>
               <DocSelect
@@ -2034,7 +2034,7 @@ export const PilotOutcomePanel: React.FC<{ contractId: number; canDecide?: boole
             );
           }}
         >
-          <p className="text-xs text-[#6B6560]">
+          <p className="text-xs text-[#6B7280]">
             A human decision, not a computed one — scale, iterate or stop, with the
             reasoning recorded alongside it.
           </p>
@@ -2133,7 +2133,7 @@ export const StartupProfilePanel: React.FC<{ startupId: number }> = ({ startupId
         </div>
       )}
 
-      <p className="text-[10px] text-[#A89F94] italic mt-3">
+      <p className="text-[10px] text-[#9CA3AF] italic mt-3">
         Funding band is deliberately not shown here — it is a risk-profiling input
         only and must not influence scoring.
       </p>
@@ -2156,7 +2156,7 @@ export const ProposalPanel: React.FC<{
 
     <div className="space-y-4">
       <div>
-        <div className="text-[10px] font-bold uppercase tracking-wider text-[#A89F94] mb-1.5">
+        <div className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF] mb-1.5">
           Technical
         </div>
         {technical && Object.keys(technical).length > 0 ? (
@@ -2166,12 +2166,12 @@ export const ProposalPanel: React.FC<{
             ))}
           </div>
         ) : (
-          <p className="text-xs text-[#6B6560]">No technical proposal recorded.</p>
+          <p className="text-xs text-[#6B7280]">No technical proposal recorded.</p>
         )}
       </div>
 
       <div>
-        <div className="text-[10px] font-bold uppercase tracking-wider text-[#A89F94] mb-1.5">
+        <div className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF] mb-1.5">
           Commercial
         </div>
         {!showCommercial ? (
@@ -2186,7 +2186,7 @@ export const ProposalPanel: React.FC<{
             ))}
           </div>
         ) : (
-          <p className="text-xs text-[#6B6560]">No commercial proposal recorded.</p>
+          <p className="text-xs text-[#6B7280]">No commercial proposal recorded.</p>
         )}
       </div>
     </div>

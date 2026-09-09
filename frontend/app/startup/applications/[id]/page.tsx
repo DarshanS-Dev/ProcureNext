@@ -13,9 +13,20 @@
 import React, { Suspense, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { AppLayout } from '@/components/shared/AppLayout';
-import { PageHeader, StatusBadge } from '@/components/shared/DesignSystem';
-import { PipelineStepper } from '@/components/shared/PipelineStepper';
-import { TabStrip, useTabParam } from '@/components/shared/Tabs';
+import { StatusBadge } from '@/components/shared/DesignSystem';
+import { useTabParam } from '@/components/shared/Tabs';
+import {
+  Card,
+  IconBadge,
+  PageHeader,
+  PillTabs,
+  StatPill,
+} from '@/components/shared/design-system';
+import {
+  ApplicationStatusStepper,
+  EligibilityDots,
+} from '@/components/shared/domain/Insights';
+import { CircleDashed, FileText } from 'lucide-react';
 import { ApiErrorState, LoadingBlock, fmtDateTime, humanize } from '@/components/shared/States';
 import {
   ChecklistPanel,
@@ -70,30 +81,29 @@ function ApplicationDetail({ appId }: { appId: number }) {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={title}
+        line1={title}
         subtitle={
           psQuery.data
             ? `Against PS #${app.problem_statement_id} — ${psQuery.data.title}`
             : `Against problem statement #${app.problem_statement_id}`
         }
-        phase={`Application #${app.id}`}
-        role="startup"
-        breadcrumb={[
-          { label: 'Startup', href: '/startup/dashboard' },
-          { label: 'Applications', href: '/startup/applications' },
-          { label: `#${app.id}` },
-        ]}
-        actions={<StatusBadge status={app.status} />}
+        action={<StatusBadge status={app.status} />}
       />
 
-      <div className="text-[11px] text-[#A89F94]">
+      <div className="text-[11px] text-[#9CA3AF]">
         Submitted {fmtDateTime(app.created_at)}
         {psQuery.data ? ` · ${humanize(psQuery.data.category)}` : ''}
       </div>
 
-      <PipelineStepper currentStatus={app.status} />
+      {/* Exactly the ApplicationStatusEnum path; not_selected branches off it
+          rather than sitting in the sequence. */}
+      <Card icon={<FileText className="w-4 h-4" />} label="Progress">
+        <ApplicationStatusStepper status={app.status} />
+      </Card>
 
-      <TabStrip tabs={TABS} active={active} onChange={setActive} role="startup" />
+      {app.status === 'not_selected' && <NotSelectedPanel appId={appId} />}
+
+      <PillTabs tabs={TABS} active={active} onChange={setActive} />
 
       <div className="space-y-5">
         {active === 'overview' && (
@@ -145,13 +155,67 @@ function ApplicationDetail({ appId }: { appId: number }) {
       </div>
 
       {!commercialUnlocked && psQuery.data && (
-        <p className="text-[10px] text-[#A89F94] italic">
+        <p className="text-[10px] text-[#9CA3AF] italic">
           The commercial stage for this problem statement has not been unlocked yet.
         </p>
       )}
     </div>
   );
 }
+
+/**
+ * Why an application ended up `not_selected`.
+ *
+ * The backend does not store a reason — Doc D notes the status is reconstructed
+ * — so this reads the three records that can explain it and says plainly when
+ * none of them does, rather than inventing a rejection message.
+ */
+const NotSelectedPanel: React.FC<{ appId: number }> = ({ appId }) => {
+  const eligibility = useQuery(() => orNull(api.getEligibilityCheck(appId)), [appId]);
+  const sandbox = useQuery(() => orNull(api.getSandboxTrial(appId)), [appId]);
+  const scores = useQuery(() => orNull(api.getScores(appId)), [appId]);
+
+  const reasons: string[] = [];
+  if (eligibility.data?.overall_result === 'not_eligible') {
+    reasons.push('The eligibility check was recorded as not eligible.');
+  }
+  if (sandbox.data?.verdict && sandbox.data.verdict !== 'promising') {
+    reasons.push(`The sandbox trial verdict was "${humanize(sandbox.data.verdict)}".`);
+  }
+  if (scores.data && scores.data.length === 0) {
+    reasons.push('No technical scores were recorded against this application.');
+  }
+
+  return (
+    <Card
+      icon={<CircleDashed className="w-4 h-4" />}
+      label="Why this ended here"
+      aside={<StatPill tone="danger">Not selected</StatPill>}
+    >
+      {eligibility.data && (
+        <div className="mb-3">
+          <EligibilityDots check={eligibility.data} labelled />
+        </div>
+      )}
+
+      {reasons.length > 0 ? (
+        <ul className="space-y-1.5">
+          {reasons.map((reason) => (
+            <li key={reason} className="flex items-start gap-2 text-xs text-[#18181B]">
+              <IconBadge size="sm" tone="danger" icon={<CircleDashed className="w-3.5 h-3.5" />} />
+              <span className="leading-relaxed pt-1.5">{reason}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-xs text-gray-500 leading-relaxed">
+          No single record explains this outcome. Another application was selected for
+          the pilot; the platform does not store a written rejection reason.
+        </p>
+      )}
+    </Card>
+  );
+};
 
 export default function StartupApplicationDetailPage() {
   // useParams is the client-side reader; the `params` prop is a promise in this

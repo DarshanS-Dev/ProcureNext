@@ -65,13 +65,13 @@ export default function AdminAuditLogPage() {
 
         <DataCard>
           <PanelHeading title="What a row holds" endpoint="AuditLogRead — core_schemas.py" />
-          <div className="divide-y divide-[#F1EDE4]">
+          <div className="divide-y divide-[#F0F0EA]">
             {FIELDS.map(([field, description]) => (
               <div key={field} className="py-2.5 flex gap-3">
                 <span className="font-mono text-[11px] text-[#C81E4A] w-32 shrink-0 pt-0.5">
                   {field}
                 </span>
-                <span className="text-xs text-[#6B6560]">{description}</span>
+                <span className="text-xs text-[#6B7280]">{description}</span>
               </div>
             ))}
           </div>
@@ -82,7 +82,7 @@ export default function AdminAuditLogPage() {
             title="What you can see today"
             endpoint="GET /admin/applications/{id}/compliance-records"
           />
-          <p className="text-xs text-[#6B6560] mb-3">
+          <p className="text-xs text-[#6B7280] mb-3">
             A compliance record is the audit-grade artefact that <em>is</em> reachable:
             a sealed snapshot of everything on record for one application at the moment
             it was compiled — eligibility, checklist, scores, QCBS, risk, containment

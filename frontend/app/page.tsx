@@ -13,8 +13,8 @@ export default function RootPage() {
   }, [router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F8F6F1' }}>
-      <div className="w-8 h-8 border-2 border-[#1A1A1A] border-t-transparent rounded-full animate-spin" />
+    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F4F4EF' }}>
+      <div className="w-8 h-8 border-2 border-[#18181B] border-t-transparent rounded-full animate-spin" />
     </div>
   );
 }

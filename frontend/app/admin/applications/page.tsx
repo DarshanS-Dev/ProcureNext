@@ -79,7 +79,7 @@ export default function AdminApplicationsPage() {
 
         <div className="flex flex-wrap gap-3">
           <div className="w-64">
-            <label className="text-[11px] font-bold text-[#6B6560] uppercase tracking-wider">
+            <label className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">
               Problem statement
             </label>
             <DocSelect value={psFilter} onChange={(e) => setPsFilter(e.target.value)}>
@@ -92,7 +92,7 @@ export default function AdminApplicationsPage() {
             </DocSelect>
           </div>
           <div className="w-48">
-            <label className="text-[11px] font-bold text-[#6B6560] uppercase tracking-wider">
+            <label className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">
               Status
             </label>
             <DocSelect
@@ -130,7 +130,7 @@ export default function AdminApplicationsPage() {
             refNumber="ADM-APP"
             role="admin"
           >
-            <div className="pt-2 divide-y divide-[#EDE7DB]">
+            <div className="pt-2 divide-y divide-[#F0F0EA]">
               {visible.map(({ app, ps }) => (
                 <div
                   key={app.id}
@@ -139,15 +139,15 @@ export default function AdminApplicationsPage() {
                   <div className="min-w-0 space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <StatusBadge status={app.status} />
-                      <span className="font-mono text-[11px] text-[#A89F94]">
+                      <span className="font-mono text-[11px] text-[#9CA3AF]">
                         APP #{app.id} · PS #{ps.id}
                       </span>
                     </div>
-                    <div className="font-bold text-sm text-[#1A1A1A] truncate">
+                    <div className="font-bold text-sm text-[#18181B] truncate">
                       {(app.technical_proposal?.title as string | undefined) ??
                         `Application #${app.id}`}
                     </div>
-                    <div className="text-[11px] text-[#6B6560] truncate">
+                    <div className="text-[11px] text-[#6B7280] truncate">
                       {ps.title} · startup #{app.startup_id} · {fmtDateTime(app.created_at)}
                     </div>
                   </div>

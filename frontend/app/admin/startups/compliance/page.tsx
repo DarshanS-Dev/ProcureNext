@@ -86,10 +86,10 @@ export default function AdminComplianceQueuePage() {
               <DataCard key={profile.user_id} className="space-y-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="text-sm font-bold text-[#1A1A1A]">
+                    <div className="text-sm font-bold text-[#18181B]">
                       Startup user #{profile.user_id}
                     </div>
-                    <div className="text-[11px] text-[#6B6560]">
+                    <div className="text-[11px] text-[#6B7280]">
                       {profile.entity_type || 'Entity type not stated'}
                       {profile.stage ? ` · ${profile.stage}` : ''}
                     </div>
@@ -99,7 +99,7 @@ export default function AdminComplianceQueuePage() {
 
                 <div
                   className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 p-3 rounded-lg text-xs"
-                  style={{ backgroundColor: '#F8F6F1', border: '1px solid #E8E2D5' }}
+                  style={{ backgroundColor: '#F4F4EF', border: '1px solid #E5E5E0' }}
                 >
                   <Submitted label="DPIIT number" value={profile.dpiit_number} />
                   <Submitted label="PAN" value={profile.pan} />
@@ -114,7 +114,7 @@ export default function AdminComplianceQueuePage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <label className="space-y-1 block">
-                    <span className="text-[11px] font-bold text-[#6B6560] uppercase tracking-wider">
+                    <span className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">
                       DPIIT status
                     </span>
                     <DocSelect
@@ -134,7 +134,7 @@ export default function AdminComplianceQueuePage() {
                   </label>
 
                   <div className="space-y-2">
-                    <span className="text-[11px] font-bold text-[#6B6560] uppercase tracking-wider block">
+                    <span className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider block">
                       Document checks
                     </span>
                     {(
@@ -146,7 +146,7 @@ export default function AdminComplianceQueuePage() {
                     ).map(([key, label]) => (
                       <label
                         key={key}
-                        className="flex items-center gap-2 text-xs font-medium text-[#1A1A1A] cursor-pointer"
+                        className="flex items-center gap-2 text-xs font-medium text-[#18181B] cursor-pointer"
                       >
                         <input
                           type="checkbox"
@@ -179,7 +179,7 @@ export default function AdminComplianceQueuePage() {
                 </DocButton>
 
                 {draft.dpiit_status !== 'verified' && (
-                  <p className="text-[11px] text-[#A89F94] italic">
+                  <p className="text-[11px] text-[#9CA3AF] italic">
                     Recording anything other than a verified DPIIT status leaves this
                     startup blocked from applying, which may be the correct outcome.
                   </p>
@@ -195,11 +195,11 @@ export default function AdminComplianceQueuePage() {
 
 const Submitted: React.FC<{ label: string; value?: string | null }> = ({ label, value }) => (
   <div className="flex gap-2">
-    <span className="text-[10px] font-bold uppercase text-[#A89F94] w-28 shrink-0 pt-0.5">
+    <span className="text-[10px] font-bold uppercase text-[#9CA3AF] w-28 shrink-0 pt-0.5">
       {label}
     </span>
-    <span className="text-[#1A1A1A] font-medium flex-1 break-words">
-      {value || <span className="text-[#A89F94] italic">Not provided</span>}
+    <span className="text-[#18181B] font-medium flex-1 break-words">
+      {value || <span className="text-[#9CA3AF] italic">Not provided</span>}
     </span>
   </div>
 );

@@ -73,8 +73,8 @@ export default function IndependentEvaluatorApplicationsPage() {
             }}
           >
             <div>
-              <h3 className="text-sm font-bold text-[#1A1A1A]">Open an application</h3>
-              <p className="text-xs text-[#6B6560] mt-0.5">
+              <h3 className="text-sm font-bold text-[#18181B]">Open an application</h3>
+              <p className="text-xs text-[#6B7280] mt-0.5">
                 Sandbox trials attach to an application; milestones and KPI verdicts
                 attach to its contract. Both are reached from the application id.
               </p>
@@ -106,8 +106,8 @@ export default function IndependentEvaluatorApplicationsPage() {
           </form>
 
           {recent.length > 0 && (
-            <div className="mt-5 pt-4 border-t border-[#F1EDE4]">
-              <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#A89F94] mb-2">
+            <div className="mt-5 pt-4 border-t border-[#F0F0EA]">
+              <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF] mb-2">
                 <Clock className="w-3 h-3" /> Recently opened
               </div>
               <div className="flex flex-wrap gap-2">
