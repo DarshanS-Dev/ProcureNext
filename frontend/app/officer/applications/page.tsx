@@ -16,15 +16,38 @@ import {
   DocLinkButton,
   DocSelect,
   DocumentForm,
-  PageHeader,
   StatusBadge,
 } from '@/components/shared/DesignSystem';
+import {
+  Card,
+  PageHeader,
+  PillLink,
+  StatPill,
+} from '@/components/shared/design-system';
+import {
+  ApplicationStatusDonut,
+  EligibilityDots,
+} from '@/components/shared/domain/Insights';
+import { orNull } from '@/lib/api/client';
 import { ApiErrorState, EmptyState, LoadingBlock, fmtDateTime, humanize } from '@/components/shared/States';
 import { api } from '@/lib/api/client';
 import { useQuery } from '@/lib/hooks/useApi';
 import { useSession } from '@/lib/auth/session';
 import { ApplicationRead, ApplicationStatusEnum, ProblemStatementRead } from '@/lib/types/api';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ClipboardList, PieChart, Sliders } from 'lucide-react';
+
+/**
+ * The five eligibility sub-checks for one row. Fetched per application because
+ * there is no bulk eligibility endpoint; a 404 (not reviewed yet) is normal and
+ * renders as "Not reviewed yet" rather than an error.
+ */
+const RowEligibility: React.FC<{ appId: number }> = ({ appId }) => {
+  const check = useQuery(() => orNull(api.getEligibilityCheck(appId)), [appId]);
+  if (check.loading) {
+    return <span className="text-[10px] text-gray-400">Checking…</span>;
+  }
+  return <EligibilityDots check={check.data} />;
+};
 
 const STATUSES: ApplicationStatusEnum[] = [
   'applied',
@@ -84,11 +107,19 @@ export default function OfficerApplicationsPage() {
     <AppLayout allow="officer">
       <div className="space-y-6">
         <PageHeader
-          title="Applications Queue"
+          line1="Applications"
+          glyph={<Sliders className="w-5 h-5 text-[#18181B]" />}
+          line1Tail="Queue"
           subtitle="Every application submitted against a problem statement you own."
-          phase="Layer 3 · Application"
-          role="officer"
-          breadcrumb={[{ label: 'Officer', href: '/officer/dashboard' }, { label: 'Applications' }]}
+          action={
+            <PillLink
+              href="/officer/problem-statements"
+              variant="outline"
+              icon={<ClipboardList className="w-4 h-4" />}
+            >
+              My statements
+            </PillLink>
+          }
         />
 
         <div className="flex flex-wrap gap-3">
@@ -123,6 +154,24 @@ export default function OfficerApplicationsPage() {
             </DocSelect>
           </div>
         </div>
+
+        {visible.length > 0 && (
+          <Card
+            icon={<PieChart className="w-4 h-4" />}
+            label="Queue Breakdown"
+            aside={
+              <StatPill>
+                {visible.length} of {queue.data?.rows.length ?? 0}
+              </StatPill>
+            }
+            className="max-w-sm"
+          >
+            <ApplicationStatusDonut
+              apps={visible.map((r) => r.app)}
+              emptyLabel="Nothing matches these filters."
+            />
+          </Card>
+        )}
 
         {(queue.loading || !session) && <LoadingBlock label="Building the queue…" />}
         {queue.error && <ApiErrorState error={queue.error} onRetry={queue.refetch} />}
@@ -176,6 +225,7 @@ export default function OfficerApplicationsPage() {
                     <div className="text-[11px] text-[#6B6560] truncate">
                       {ps.title} · startup #{app.startup_id} · {fmtDateTime(app.created_at)}
                     </div>
+                    <RowEligibility appId={app.id} />
                   </div>
 
                   <DocLinkButton

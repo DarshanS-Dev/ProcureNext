@@ -9,6 +9,13 @@
  */
 
 import React, { useState } from 'react';
+import {
+  IconBadge,
+  PageHeader,
+  ProgressCapsule,
+  StatPill,
+} from '@/components/shared/design-system';
+import { ShieldCheck, Sliders } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/shared/AppLayout';
 import {
@@ -19,7 +26,7 @@ import {
   DocTextarea,
   DocumentForm,
   FormField,
-  PageHeader,
+  DataCard,
   SectionDivider,
 } from '@/components/shared/DesignSystem';
 import { humanize } from '@/components/shared/States';
@@ -87,16 +94,39 @@ export default function NewProblemStatementPage() {
     <AppLayout allow="officer">
       <div className="space-y-6 max-w-4xl">
         <PageHeader
-          title="New Problem Statement"
+          line1="New Problem"
+          glyph={<Sliders className="w-5 h-5 text-[#18181B]" />}
+          line1Tail="Statement"
           subtitle="Creates a draft. Nothing is visible to startups until you publish it."
-          phase="Layer 2 · Problem statement"
-          role="officer"
-          breadcrumb={[
-            { label: 'Officer', href: '/officer/dashboard' },
-            { label: 'Problem statements', href: '/officer/problem-statements' },
-            { label: 'New' },
-          ]}
         />
+
+        {/* The two fields publishing actually requires, filling as you type.
+            Everything else the AI assist says is advisory. */}
+        <DataCard>
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2">
+              <IconBadge size="sm" icon={<ShieldCheck className="w-3.5 h-3.5" />} />
+              <span className="text-xs font-bold uppercase tracking-wider text-[#18181B]">
+                Publish quality gate
+              </span>
+            </div>
+            <StatPill
+              tone={
+                baseline.trim() && measurementMethod.trim() ? 'ok' : 'warn'
+              }
+            >
+              {[baseline, measurementMethod].filter((v) => v.trim()).length} / 2
+            </StatPill>
+          </div>
+          <ProgressCapsule
+            filled={[baseline, measurementMethod].filter((v) => v.trim()).length}
+            total={2}
+            labels={['Baseline', 'Measurement method']}
+          />
+          <p className="text-[10px] text-gray-400 mt-3 leading-relaxed">
+            A draft saves without these; publishing does not.
+          </p>
+        </DataCard>
 
         <DocumentForm
           title="Problem Statement Draft"

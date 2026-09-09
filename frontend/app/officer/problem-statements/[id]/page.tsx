@@ -31,7 +31,16 @@ import {
   SectionDivider,
   StatusBadge,
 } from '@/components/shared/DesignSystem';
-import { TabStrip, useTabParam } from '@/components/shared/Tabs';
+import { useTabParam } from '@/components/shared/Tabs';
+import {
+  CapsuleBarChart,
+  IconBadge,
+  PillTabs,
+  ProgressCapsule,
+  StatPill,
+} from '@/components/shared/design-system';
+import { ApplicationStatusDonut } from '@/components/shared/domain/Insights';
+import { Lock, LockOpen, Mail, PieChart, ShieldCheck } from 'lucide-react';
 import {
   ApiErrorState,
   EmptyState,
@@ -145,7 +154,34 @@ function PSDetail({ psId }: { psId: number }) {
         />
       )}
 
-      <TabStrip tabs={TABS} active={active} onChange={setActive} role="officer" />
+      {/* Which of the bid-defining fields are still editable — driven by the
+          computed `is_locked_field_editable` flag, not a guess. */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {['Title', 'Category', 'KPIs', 'Eligibility'].map((field) => (
+          <span
+            key={field}
+            className={`inline-flex items-center gap-1.5 text-[10px] font-extrabold px-3 py-1.5 rounded-full ${
+              ps.is_locked_field_editable
+                ? 'bg-[#F3F3EE] text-[#6B7280]'
+                : 'bg-[#18181B] text-white'
+            }`}
+            title={
+              ps.is_locked_field_editable
+                ? 'Still editable — no applications yet'
+                : 'Locked — applications were bid against this'
+            }
+          >
+            {ps.is_locked_field_editable ? (
+              <LockOpen className="w-3 h-3" />
+            ) : (
+              <Lock className="w-3 h-3" />
+            )}
+            {field}
+          </span>
+        ))}
+      </div>
+
+      <PillTabs tabs={TABS} active={active} onChange={setActive} />
 
       {active === 'details' && (
         <DetailsTab ps={ps} canEdit={isOwner} onSaved={(row) => psQuery.setData(row)} />
@@ -221,6 +257,14 @@ const DetailsTab: React.FC<{
     );
   };
 
+  // The only two fields that actually block publishing (Doc B L2 #2/#3).
+  // Everything else the assist says is advisory, so it never turns this red.
+  const gates = [
+    { label: 'Baseline', done: Boolean(form.baseline.trim()) },
+    { label: 'Measurement method', done: Boolean(form.measurement_method.trim()) },
+  ];
+  const gatesPassed = gates.filter((g) => g.done).length;
+
   return (
     <div className="space-y-5">
       {!ps.is_locked_field_editable && (
@@ -230,6 +274,56 @@ const DetailsTab: React.FC<{
           message="Applications already exist for this problem statement, so the fields that define what was bid against can no longer be changed. The server rejects those edits."
         />
       )}
+
+      <DataCard>
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2">
+            <IconBadge size="sm" icon={<ShieldCheck className="w-3.5 h-3.5" />} />
+            <span className="text-xs font-bold uppercase tracking-wider text-[#18181B]">
+              Publish quality gate
+            </span>
+          </div>
+          <StatPill tone={gatesPassed === gates.length ? 'ok' : 'warn'}>
+            {gatesPassed} / {gates.length}
+          </StatPill>
+        </div>
+
+        <ProgressCapsule
+          filled={gatesPassed}
+          total={gates.length}
+          labels={gates.map((g) => g.label)}
+        />
+
+        <div className="mt-4 space-y-1.5">
+          {gates.map((gate) => (
+            <div key={gate.label} className="flex items-center gap-2 text-xs">
+              <span
+                className="w-2.5 h-2.5 rounded-full shrink-0"
+                style={{ backgroundColor: gate.done ? '#1E9E5A' : '#C81E4A' }}
+              />
+              <span className={gate.done ? 'text-[#18181B] font-semibold' : 'text-[#C81E4A] font-semibold'}>
+                {gate.label}
+              </span>
+              <span className="text-gray-400">
+                {gate.done ? 'present' : 'required before publishing'}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {advice && !advice.is_outcome_based && (
+          <div className="mt-3">
+            <StatPill tone="warn">Advisory — reads as a technology spec</StatPill>
+            <p className="text-[11px] text-gray-500 mt-1.5 leading-relaxed">
+              Non-blocking. You can publish with this flag set.
+            </p>
+          </div>
+        )}
+
+        <p className="text-[10px] text-gray-400 mt-3 leading-relaxed">
+          These are the only two fields the server refuses to publish without.
+        </p>
+      </DataCard>
 
       {canEdit && (
         <DataCard>
@@ -658,7 +752,28 @@ const MatchingTab: React.FC<{ psId: number; canInvite: boolean }> = ({ psId, can
           />
         )}
 
-        <div className="divide-y divide-[#F1EDE4]">
+        {/* Ordering only. The matching service returns ranked ids, not
+            similarity scores, so bar height encodes rank and nothing else. */}
+        {(matches.data?.matches.length ?? 0) > 0 && (
+          <div className="rounded-2xl bg-[#F8F8F4] p-4 mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#18181B]">
+                Rank order
+              </span>
+              <span className="text-[10px] text-gray-400">Rank, not a similarity score</span>
+            </div>
+            <CapsuleBarChart
+              ticks={[]}
+              bars={(matches.data?.matches ?? []).slice(0, 8).map((m, idx, all) => ({
+                label: `#${m.rank}`,
+                value: (all.length - idx) / all.length,
+                badge: m.recommended ? 'Rec' : null,
+              }))}
+            />
+          </div>
+        )}
+
+        <div className="divide-y divide-[#F0F0EA]">
           {(matches.data?.matches ?? []).map((m) => {
             const alreadyInvited = invitedIds.has(m.startup_id);
             return (
@@ -722,19 +837,30 @@ const MatchingTab: React.FC<{ psId: number; canInvite: boolean }> = ({ psId, can
           <EmptyState title="No invites sent" hint="Invite a matched startup from the panel above." />
         )}
 
-        <div className="divide-y divide-[#F1EDE4]">
+        <div className="space-y-2">
           {(invites.data ?? []).map((inv) => (
-            <div key={inv.id} className="py-3 flex items-center justify-between gap-3">
-              <div>
-                <div className="text-xs font-bold text-[#1A1A1A]">Startup #{inv.startup_id}</div>
-                <div className="text-[11px] text-[#6B6560]">
-                  Invited {fmtDateTime(inv.invited_at)}
+            <div
+              key={inv.id}
+              className="rounded-2xl border border-[#E5E5E0] px-4 py-3 flex items-center justify-between gap-3"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <IconBadge
+                  size="sm"
+                  tone={inv.converted ? 'ok' : 'muted'}
+                  icon={<Mail className="w-3.5 h-3.5" />}
+                />
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-[#18181B]">
+                    Startup #{inv.startup_id}
+                  </div>
+                  <div className="text-[11px] text-gray-500">
+                    Invited {fmtDateTime(inv.invited_at)}
+                  </div>
                 </div>
               </div>
-              <StatusBadge
-                status={inv.converted ? 'success' : 'pending'}
-                label={inv.converted ? 'Applied' : 'No application yet'}
-              />
+              <StatPill tone={inv.converted ? 'ok' : 'ghost'}>
+                {inv.converted ? 'Applied' : 'Pending'}
+              </StatPill>
             </div>
           ))}
         </div>
@@ -765,7 +891,19 @@ const ApplicationsTab: React.FC<{ psId: number }> = ({ psId }) => {
         />
       )}
 
-      <div className="divide-y divide-[#F1EDE4]">
+      {(query.data?.length ?? 0) > 0 && (
+        <div className="rounded-2xl bg-[#F8F8F4] p-4 mb-4 max-w-xs">
+          <div className="flex items-center gap-2 mb-1">
+            <IconBadge size="sm" icon={<PieChart className="w-3.5 h-3.5" />} />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#18181B]">
+              By status
+            </span>
+          </div>
+          <ApplicationStatusDonut apps={query.data ?? []} />
+        </div>
+      )}
+
+      <div className="divide-y divide-[#F0F0EA]">
         {(query.data ?? []).map((app) => (
           <div key={app.id} className="py-3.5 flex items-center justify-between gap-3">
             <div className="min-w-0">
