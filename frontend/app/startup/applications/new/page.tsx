@@ -14,6 +14,15 @@
  */
 
 import React, { Suspense, useState } from 'react';
+import { DataCard } from '@/components/shared/DesignSystem';
+import {
+  HeroCard,
+  IconBadge,
+  PageHeader,
+  ProgressCapsule,
+  StatPill,
+} from '@/components/shared/design-system';
+import { Lock, Send } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppLayout } from '@/components/shared/AppLayout';
 import {
@@ -24,13 +33,11 @@ import {
   DocTextarea,
   DocumentForm,
   FormField,
-  PageHeader,
   SectionDivider,
 } from '@/components/shared/DesignSystem';
 import { ApiErrorState, LoadingBlock, humanize } from '@/components/shared/States';
 import { api } from '@/lib/api/client';
 import { useMutation, useQuery } from '@/lib/hooks/useApi';
-import { Send } from 'lucide-react';
 
 function NewApplicationForm() {
   const router = useRouter();
@@ -48,6 +55,19 @@ function NewApplicationForm() {
   const [bidAmount, setBidAmount] = useState('');
   const [paymentSchedule, setPaymentSchedule] = useState('');
   const [assumptions, setAssumptions] = useState('');
+
+  // Field presence only — nothing here is scored or sent anywhere.
+  const COMPLETION_FIELDS = [
+    psId,
+    title,
+    summary,
+    approach,
+    timelineWeeks,
+    bidAmount,
+    paymentSchedule,
+    assumptions,
+  ];
+  const completion = COMPLETION_FIELDS.filter((v) => String(v).trim()).length;
 
   // Only published problem statements accept applications.
   const publishable = (psQuery.data ?? []).filter((ps) => ps.status === 'published');
@@ -83,16 +103,42 @@ function NewApplicationForm() {
   return (
     <div className="space-y-6 max-w-4xl">
       <PageHeader
-        title="Submit an Application"
+        line1="Submit an"
+        glyph={<Send className="w-5 h-5 text-[#18181B]" />}
+        line1Tail="Application"
         subtitle="Technical and commercial proposal for one published problem statement."
-        phase="Layer 3 · Application"
-        role="startup"
-        breadcrumb={[
-          { label: 'Startup', href: '/startup/dashboard' },
-          { label: 'Applications', href: '/startup/applications' },
-          { label: 'New' },
-        ]}
       />
+
+      {/* Sealed-bid notice. This states the real rule — the commercial proposal
+          is hidden from evaluators until technical scoring locks — rather than
+          dressing it up as an animation. */}
+      <HeroCard
+        icon={<Lock className="w-4 h-4" />}
+        label="Sealed bid"
+        aside={<StatPill tone="warn">Two envelopes</StatPill>}
+        title="Your commercial bid stays sealed"
+        body="Evaluators score the technical proposal without seeing your price. The commercial proposal is only unlocked once technical scoring is complete for this problem statement."
+      />
+
+      {/* Completion across the two proposals, live off form state. */}
+      <DataCard>
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2">
+            <IconBadge size="sm" icon={<Send className="w-3.5 h-3.5" />} />
+            <span className="text-xs font-bold uppercase tracking-wider text-[#18181B]">
+              Proposal completeness
+            </span>
+          </div>
+          <StatPill tone={completion === COMPLETION_FIELDS.length ? 'ok' : 'ghost'}>
+            {completion} / {COMPLETION_FIELDS.length}
+          </StatPill>
+        </div>
+        <ProgressCapsule filled={completion} total={COMPLETION_FIELDS.length} />
+        <p className="text-[10px] text-gray-400 mt-3 leading-relaxed">
+          Only the problem statement, title and summary are required to submit; the rest
+          strengthens the bid.
+        </p>
+      </DataCard>
 
       {psQuery.loading && <LoadingBlock label="Loading problem statements…" />}
       {psQuery.error && <ApiErrorState error={psQuery.error} onRetry={psQuery.refetch} />}

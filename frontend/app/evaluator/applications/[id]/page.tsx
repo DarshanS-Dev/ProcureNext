@@ -37,6 +37,7 @@ import {
 import { api, orNull } from '@/lib/api/client';
 import { useMutation, useQuery } from '@/lib/hooks/useApi';
 import { EvaluationScoreEntry } from '@/lib/types/api';
+import { IconBadge } from '@/components/shared/design-system';
 import { ShieldAlert } from 'lucide-react';
 
 const TABS = [
@@ -328,24 +329,87 @@ const ScoringForm: React.FC<{ appId: number; declared: boolean; recused: boolean
             });
           }}
         >
+          <div className="rounded-2xl bg-[#18181B] text-white px-5 py-4 flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                Weighted total
+              </div>
+              <div className="text-3xl font-black tracking-tight tabular-nums">
+                {weightedTotal.toFixed(2)}
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                Criteria complete
+              </div>
+              <div className="text-sm font-black text-[#D7FD44]">
+                {
+                  rows.filter(
+                    (c) =>
+                      entries[c.id]?.score !== '' &&
+                      entries[c.id]?.score !== undefined &&
+                      entries[c.id]?.justification?.trim(),
+                  ).length
+                }{' '}
+                / {rows.length}
+              </div>
+            </div>
+          </div>
+
           <p className="text-xs text-[#6B7280]">
             All {rows.length} criteria are submitted together in a single call, and
             cannot be revised afterwards. Total rubric weight is {totalWeight.toFixed(2)}.
           </p>
 
+          {/* Security & compliance is one of the seven criteria, but it is the
+              only one that feeds a second system: it drives Cybersecurity Risk
+              on the risk profile. Worth surfacing, not worth a separate page. */}
+          {rows.some((c) => /security|compliance/i.test(c.name)) && (
+            <div className="rounded-2xl border border-[#E5E5E0] px-4 py-3 flex items-start gap-3">
+              <IconBadge size="sm" icon={<ShieldAlert className="w-3.5 h-3.5" />} />
+              <div className="min-w-0">
+                <div className="text-xs font-bold text-[#18181B]">
+                  Security &amp; compliance scores twice
+                </div>
+                <p className="text-[11px] text-gray-500 leading-relaxed mt-0.5">
+                  This criterion is scored like the other six, and the same score also
+                  feeds Cybersecurity Risk on this application&apos;s risk profile — so a
+                  low score here narrows the pilot&apos;s containment terms downstream.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-4">
             {rows.map((c) => (
-              <div
-                key={c.id}
-                className="p-4 rounded-lg space-y-2.5"
-                style={{ backgroundColor: '#F8F8F4', border: '1px solid #E5E5E0' }}
-              >
+              <div key={c.id} className="p-4 rounded-2xl bg-[#F8F8F4] space-y-2.5">
                 <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-xs font-bold text-[#18181B]">{c.name}</div>
-                    <div className="text-[10px] text-[#9CA3AF]">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      {/* Justification is NOT NULL server-side, so an unwritten
+                          one is a hard blocker, not a nicety. */}
+                      <span
+                        className={`w-2 h-2 rounded-full shrink-0 ${
+                          entries[c.id]?.justification?.trim()
+                            ? 'bg-[#1E9E5A]'
+                            : 'bg-[#C81E4A]'
+                        }`}
+                        title={
+                          entries[c.id]?.justification?.trim()
+                            ? 'Justification written'
+                            : 'Justification required'
+                        }
+                      />
+                      <div className="text-xs font-bold text-[#18181B]">{c.name}</div>
+                    </div>
+                    <div className="text-[10px] text-gray-400 mt-0.5">
                       Weight {c.weight}
                       {c.category ? ` · ${humanize(c.category)}` : ' · all categories'}
+                      {entries[c.id]?.score !== '' && entries[c.id]?.score !== undefined
+                        ? ` · contributes ${(
+                            Number(entries[c.id].score) * c.weight
+                          ).toFixed(2)}`
+                        : ''}
                     </div>
                   </div>
                   <div className="w-24 shrink-0">
@@ -371,6 +435,34 @@ const ScoringForm: React.FC<{ appId: number; declared: boolean; recused: boolean
                       }
                     />
                   </div>
+                </div>
+
+                {/* Drag the score; the weighted total above updates live. */}
+                <input
+                  type="range"
+                  min={0}
+                  max={10}
+                  step={0.1}
+                  disabled={locked}
+                  aria-label={`Score slider for ${c.name}`}
+                  value={entries[c.id]?.score === '' || entries[c.id]?.score === undefined
+                    ? 0
+                    : Number(entries[c.id].score)}
+                  onChange={(ev) =>
+                    setEntries((st) => ({
+                      ...st,
+                      [c.id]: {
+                        justification: st[c.id]?.justification ?? '',
+                        score: ev.target.value,
+                      },
+                    }))
+                  }
+                  className="w-full accent-[#18181B] cursor-pointer disabled:cursor-not-allowed"
+                />
+                <div className="flex justify-between text-[9px] font-bold text-gray-400 -mt-1">
+                  <span>0</span>
+                  <span>5</span>
+                  <span>10</span>
                 </div>
 
                 <DocTextarea

@@ -21,11 +21,19 @@ import {
   DocTextarea,
   DocumentForm,
   FormField,
-  PageHeader,
   SectionDivider,
   StatusBadge,
 } from '@/components/shared/DesignSystem';
 import { ApiErrorState, LoadingBlock, fmtDateTime, humanize } from '@/components/shared/States';
+import {
+  IconBadge,
+  PageHeader,
+  PillTabs,
+  ProgressCapsule,
+  StatPill,
+} from '@/components/shared/design-system';
+import { TRLDial } from '@/components/startup/TRLDial';
+import { UserCheck } from 'lucide-react';
 import { api } from '@/lib/api/client';
 import { useMutation, useQuery } from '@/lib/hooks/useApi';
 import {
@@ -75,6 +83,16 @@ export default function StartupProfilePage() {
   const [description, setDescription] = useState('');
 
   const profile = profileQuery.data;
+
+  // Three real gates: Level 1 identity fields, Level 2 capability fields, and
+  // the admin's compliance verification.
+  const registrationStep = profile
+    ? [
+        Boolean(profile.entity_type && profile.pan),
+        Boolean(profile.description && profile.trl_stage),
+        Boolean(profile.compliance_verified_at),
+      ].filter(Boolean).length
+    : 0;
 
   // Seed the form once the server row arrives (and after each successful save).
   useEffect(() => {
@@ -149,11 +167,10 @@ export default function StartupProfilePage() {
     <AppLayout allow="startup">
       <div className="space-y-6">
         <PageHeader
-          title="Startup Profile"
+          line1="Startup"
+          glyph={<UserCheck className="w-5 h-5 text-[#18181B]" />}
+          line1Tail="Profile"
           subtitle="Level 1 registration and Level 2 capability data. Both must be complete, and an admin must verify compliance, before you can apply."
-          phase="Layer 1 · Actors"
-          role="startup"
-          breadcrumb={[{ label: 'Startup', href: '/startup/dashboard' }, { label: 'Profile' }]}
         />
 
         {profileQuery.loading && <LoadingBlock label="Loading profile…" />}
@@ -164,29 +181,37 @@ export default function StartupProfilePage() {
 
         {profile && (
           <>
+            {/* Level 1 -> Level 2 -> compliance, from field presence and the
+                admin's verification timestamp. */}
+            <DataCard>
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div className="flex items-center gap-2">
+                  <IconBadge size="sm" icon={<UserCheck className="w-3.5 h-3.5" />} />
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#18181B]">
+                    Registration progress
+                  </span>
+                </div>
+                <StatPill tone={registrationStep === 3 ? 'ok' : 'ghost'}>
+                  {registrationStep} / 3
+                </StatPill>
+              </div>
+              <ProgressCapsule
+                filled={registrationStep}
+                total={3}
+                labels={['Level 1', 'Level 2', 'Verified']}
+              />
+            </DataCard>
+
             <ComplianceCard profile={profile} />
 
-            <div className="flex gap-2">
-              {(
-                [
-                  { id: 'level1', label: 'Level 1 — Registration' },
-                  { id: 'level2', label: 'Level 2 — Capability' },
-                ] as const
-              ).map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setTab(t.id)}
-                  className="px-4 py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer"
-                  style={
-                    tab === t.id
-                      ? { backgroundColor: '#EAF7ED', color: '#1E9E5A', border: '1.5px solid #B8E6C4' }
-                      : { backgroundColor: '#fff', color: '#6B7280', border: '1px solid #E5E5E0' }
-                  }
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
+            <PillTabs
+              active={tab}
+              onChange={(id) => setTab(id as 'level1' | 'level2')}
+              tabs={[
+                { id: 'level1', label: 'Level 1 — Registration' },
+                { id: 'level2', label: 'Level 2 — Capability' },
+              ]}
+            />
 
             {tab === 'level1' ? (
               <DocumentForm
@@ -277,16 +302,16 @@ export default function StartupProfilePage() {
                       />
                     </FormField>
 
-                    <FormField label="TRL stage" hint="1–9 (Technology Readiness Level)">
-                      <DocSelect value={trlStage} onChange={(e) => setTrlStage(e.target.value)}>
-                        <option value="">Not set</option>
-                        {Array.from({ length: 9 }, (_, i) => i + 1).map((n) => (
-                          <option key={n} value={n}>
-                            TRL {n}
-                          </option>
-                        ))}
-                      </DocSelect>
-                    </FormField>
+                    <div className="md:col-span-2">
+                      <FormField
+                        label="TRL stage"
+                        hint="Drives semantic matching against problem statements."
+                      >
+                        <div className="rounded-3xl bg-[#F8F8F4] p-5">
+                          <TRLDial value={trlStage} onChange={setTrlStage} />
+                        </div>
+                      </FormField>
+                    </div>
 
                     <FormField
                       label="Funding band"
