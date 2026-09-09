@@ -1,15 +1,48 @@
 'use client';
 
+/**
+ * Startup overview.
+ *
+ * The reference design for the whole app — every other page composes the same
+ * primitives out of `components/shared/design-system`. The tab strip mirrors the
+ * role's top-level pages; selecting one navigates rather than swapping content,
+ * because those pages already exist.
+ */
+
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/shared/AppLayout';
-import { AlertStrip, PageHeader } from '@/components/shared/DesignSystem';
-import { QuickLink, Stat } from '@/components/shared/Dashboard';
+import { AlertStrip } from '@/components/shared/DesignSystem';
 import { LoadingBlock } from '@/components/shared/States';
 import { api, orNull } from '@/lib/api/client';
 import { useQuery } from '@/lib/hooks/useApi';
 import { useSession } from '@/lib/auth/session';
+import { StartupMetricCards } from '@/components/startup/StartupMetricCards';
+import {
+  ProfileReadinessCard,
+  StatusBreakdownCard,
+  SubmissionActivityCard,
+} from '@/components/startup/StartupCharts';
+import {
+  ActionCard,
+  PageHeader,
+  PillLink,
+  PillTabs,
+  ROLE_NAV,
+  TileLink,
+} from '@/components/shared/design-system';
+import {
+  ClipboardList,
+  Mail,
+  Plus,
+  Search,
+  Sliders,
+  Sparkles,
+  UserCheck,
+} from 'lucide-react';
 
 export default function StartupDashboardPage() {
+  const router = useRouter();
   const session = useSession();
 
   const profile = useQuery(() => api.getMyProfile(), []);
@@ -17,97 +50,108 @@ export default function StartupDashboardPage() {
     enabled: Boolean(session),
   });
   const matches = useQuery(() => api.getMatchedProblemStatements(), []);
-  // The invite router is not mounted, so treat a 404 as "no invites" here
-  // rather than letting it look like a failure on the dashboard.
   const invites = useQuery(() => orNull(api.getMyInvites()), []);
 
   const canApply = Boolean(profile.data?.compliance_verified_at && profile.data?.description);
-  const active = (apps.data ?? []).filter(
+  const appRows = apps.data ?? [];
+  const activeAppsCount = appRows.filter(
     (a) => !['completed', 'not_selected'].includes(a.status),
   ).length;
 
+  const tabs = ROLE_NAV.startup.items.map((item) => ({ id: item.href, label: item.label }));
+
   return (
     <AppLayout allow="startup">
-      <div className="space-y-6">
+      <div className="space-y-6 pb-12">
         <PageHeader
-          title="Startup Overview"
-          subtitle="Where your applications stand and what is open to bid on."
-          role="startup"
-          breadcrumb={[{ label: 'Startup' }, { label: 'Overview' }]}
+          line1="Startup"
+          glyph={<Sliders className="w-5 h-5 text-[#18181B]" />}
+          line1Tail="Portal"
+          line2="and"
+          accentGlyph={<Sparkles className="w-5 h-5" />}
+          line2Tail="Workflows"
+          action={
+            <PillLink href="/startup/discover" icon={<Plus className="w-4 h-4" />}>
+              Explore Opportunities
+            </PillLink>
+          }
         />
 
-        {!session && <LoadingBlock label="Loading…" rows={2} />}
+        <PillTabs
+          tabs={tabs}
+          active="/startup/dashboard"
+          onChange={(href) => router.push(href)}
+        />
+
+        {!session && <LoadingBlock label="Loading overview..." rows={2} />}
 
         {profile.data && !canApply && (
           <AlertStrip
             type="warning"
-            title="You cannot apply yet"
+            title="Compliance Verification Required"
             message={
               !profile.data.description
-                ? 'Your Level 2 capability profile is incomplete. Add a description and TRL stage on your profile page.'
-                : 'An admin has not verified your compliance details yet. Applications are blocked until they do.'
+                ? 'Level 2 capability profile incomplete. Add a description and TRL stage on your profile.'
+                : 'Admin verification pending. Proposal submissions are locked until approved.'
             }
           />
         )}
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Stat
-            role="startup"
-            label="Applications"
-            value={apps.data?.length}
-            loading={apps.loading}
-            error={apps.error}
-            hint={`${active} still in progress`}
-            href="/startup/applications"
-          />
-          <Stat
-            role="startup"
-            label="Recommended"
-            value={(matches.data ?? []).filter((m) => m.recommended).length}
-            loading={matches.loading}
-            error={matches.error}
-            hint="Matched to your profile"
-            href="/startup/discover"
-          />
-          <Stat
-            role="startup"
-            label="Open to bid"
-            value={matches.data?.length}
-            loading={matches.loading}
-            error={matches.error}
-            hint="Published problem statements"
-            href="/startup/discover"
-          />
-          <Stat
-            role="startup"
-            label="Direct invites"
-            value={invites.data?.length ?? 0}
-            loading={invites.loading}
-            error={invites.error}
-            hint="From officers"
-            href="/startup/invites"
-          />
-        </div>
+        <StartupMetricCards
+          appsCount={appRows.length}
+          activeAppsCount={activeAppsCount}
+          matchesCount={matches.data?.length ?? 0}
+          recommendedCount={(matches.data ?? []).filter((m) => m.recommended).length}
+          invitesCount={invites.data?.length ?? 0}
+          isVerified={Boolean(profile.data?.compliance_verified_at)}
+          loading={apps.loading || matches.loading}
+        />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <QuickLink
-            role="startup"
-            href="/startup/profile"
-            title="Complete your profile"
-            description="Level 2 capability data drives semantic matching and unlocks applying."
-          />
-          <QuickLink
-            role="startup"
-            href="/startup/discover"
-            title="Discover problem statements"
-            description="Browse everything published, with your matches flagged first."
-          />
-          <QuickLink
-            role="startup"
-            href="/startup/applications"
-            title="Track your applications"
-            description="Eligibility, checklist uploads, milestones and pilot outcome."
-          />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
+          <div className="lg:col-span-2 space-y-6">
+            <SubmissionActivityCard apps={appRows} />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <StatusBreakdownCard apps={appRows} />
+              <ProfileReadinessCard profile={profile.data} />
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <TileLink
+                href="/startup/profile"
+                icon={<UserCheck className="w-4 h-4" />}
+                label="TRL Profile"
+              />
+              <TileLink
+                href="/startup/invites"
+                icon={<Mail className="w-4 h-4" />}
+                label="Invites"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <ActionCard
+                href="/startup/profile"
+                icon={<UserCheck className="w-5 h-5" />}
+                title="Level 2 Profile"
+                hint="Update TRL stage and capability details for matching."
+              />
+              <ActionCard
+                href="/startup/discover"
+                icon={<Search className="w-5 h-5" />}
+                title="Discover Statements"
+                hint="Browse published problem statements & bid."
+              />
+              <ActionCard
+                href="/startup/applications"
+                icon={<ClipboardList className="w-5 h-5" />}
+                title="Track Applications"
+                hint="Track checklists, milestone approvals, and pilot outcomes."
+              />
+            </div>
+          </div>
         </div>
       </div>
     </AppLayout>

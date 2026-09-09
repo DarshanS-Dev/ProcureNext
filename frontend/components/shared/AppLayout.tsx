@@ -3,17 +3,18 @@
 /**
  * Authenticated shell + route guard.
  *
- * Replaces the previous behaviour where the role came from a dropdown in the
- * navbar: the role now comes from the JWT, and a page declares which roles may
- * render it. Anyone signed out is sent to /login; anyone signed in with the
- * wrong role is sent to their own dashboard rather than shown a screen full of
- * 403s.
+ * The role comes from the JWT and a page declares which roles may render it.
+ * Anyone signed out is sent to /login; anyone signed in with the wrong role is
+ * sent to their own dashboard rather than shown a screen full of 403s.
+ *
+ * Navigation is the single persistent top bar (see design-system/TopNav) — the
+ * sidebar is gone, at every breakpoint.
  */
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { AppNavbar, AppSidebar } from '@/components/shared/AppNavigation';
+import { TopNav } from '@/components/shared/design-system';
 import { RoleEnum } from '@/lib/types/api';
 import { Session, homeRouteFor, readSession } from '@/lib/auth/session';
 
@@ -52,13 +53,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, allow }) => {
 
   if (status !== 'ok' || !session) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{ backgroundColor: '#F8F6F1' }}
-      >
+      <div className="min-h-screen flex items-center justify-center bg-[#F4F4EF]">
         <div className="text-center space-y-3">
-          <div className="w-8 h-8 mx-auto border-2 border-[#1A1A1A] border-t-transparent rounded-full animate-spin" />
-          <div className="text-[11px] font-bold uppercase tracking-widest text-[#A89F94]">
+          <div className="w-8 h-8 mx-auto border-2 border-[#18181B] border-t-transparent rounded-full animate-spin" />
+          <div className="text-[11px] font-bold uppercase tracking-widest text-gray-400">
             {status === 'redirecting' ? 'Redirecting…' : 'Verifying session…'}
           </div>
         </div>
@@ -67,19 +65,16 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, allow }) => {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#F8F6F1' }}>
-      <AppNavbar session={session} />
-      <div className="flex">
-        <AppSidebar session={session} />
-        <motion.main
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25, ease: 'easeOut' }}
-          className="flex-1 px-7 py-6 max-w-6xl mx-auto w-full"
-        >
-          {children}
-        </motion.main>
-      </div>
+    <div className="min-h-screen bg-[#F4F4EF]">
+      <TopNav session={session} />
+      <motion.main
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, ease: 'easeOut' }}
+        className="max-w-7xl mx-auto w-full px-5 py-6"
+      >
+        {children}
+      </motion.main>
     </div>
   );
 };
