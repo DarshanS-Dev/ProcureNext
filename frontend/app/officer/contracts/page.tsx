@@ -28,7 +28,9 @@ import { api, orNull } from '@/lib/api/client';
 import { useQuery } from '@/lib/hooks/useApi';
 import { useSession } from '@/lib/auth/session';
 import { ApplicationRead, ContractRead, ProblemStatementRead } from '@/lib/types/api';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ScrollText } from 'lucide-react';
+import { Card, CardLink, StatPill } from '@/components/shared/design-system';
+import { MilestoneStepper } from '@/components/shared/domain/Insights';
 
 interface ContractRow {
   contract: ContractRead;
@@ -38,6 +40,61 @@ interface ContractRow {
 
 /** Statuses at which a contract can plausibly exist. */
 const CONTRACTABLE = new Set(['selected', 'contracted', 'completed']);
+
+/**
+ * One pilot at a glance: who, when, and how far through the five milestones.
+ * Milestones are fetched per contract because there is no bulk route.
+ */
+const ContractCard: React.FC<{
+  contract: ContractRead;
+  app: ApplicationRead;
+  ps: ProblemStatementRead;
+}> = ({ contract, app, ps }) => {
+  const milestones = useQuery(() => orNull(api.getMilestones(contract.id)), [contract.id]);
+  const rows = milestones.data ?? [];
+  const accepted = rows.filter((m) => m.status === 'accepted').length;
+  const paid = rows.filter((m) => m.payment_status === 'paid').length;
+
+  return (
+    <Card
+      icon={<ScrollText className="w-4 h-4" />}
+      label={`Contract #${contract.id}`}
+      aside={<StatusBadge status={app.status} />}
+      footer={
+        <>
+          <span>
+            {paid} of {rows.length || 5} milestones paid
+          </span>
+          <CardLink href={`/officer/applications/${app.id}?tab=contract`}>Manage pilot</CardLink>
+        </>
+      }
+    >
+      <div className="space-y-1 mb-4">
+        <div className="font-bold text-sm text-[#18181B] truncate">{ps.title}</div>
+        <div className="text-[11px] text-gray-500">
+          Startup #{app.startup_id} · raised {fmtDateTime(contract.created_at)} ·{' '}
+          {contract.signed_at ? `signed ${fmtDateTime(contract.signed_at)}` : 'not signed'}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 mb-3">
+        <StatPill tone={accepted === 5 ? 'ok' : 'ghost'}>{accepted} / 5 accepted</StatPill>
+        {rows.some((m) => m.status === 'rejected') && (
+          <StatPill tone="danger">Rework needed</StatPill>
+        )}
+        {rows.some((m) => m.payment_status === 'due') && <StatPill tone="warn">Payment due</StatPill>}
+      </div>
+
+      {milestones.loading ? (
+        <div className="h-16 rounded-2xl bg-[#F0F0EA] animate-pulse" />
+      ) : (
+        <div className="rounded-2xl bg-[#F8F8F4] p-3">
+          <MilestoneStepper milestones={rows} />
+        </div>
+      )}
+    </Card>
+  );
+};
 
 export default function OfficerContractsPage() {
   const session = useSession();
@@ -107,45 +164,15 @@ export default function OfficerContractsPage() {
           />
         )}
 
+        {/* A card wall of live pilots. This is where the PRD's Pilot Manager
+            "corkboard" lands — folded into the officer's existing contracts
+            page rather than given a role and route that do not exist. */}
         {rows.length > 0 && (
-          <DocumentForm
-            title="Contract Register"
-            subtitle="GET /applications/{id}/contract"
-            refNumber="CON-REG"
-            role="officer"
-          >
-            <div className="pt-2 divide-y divide-[#F0F0EA]">
-              {rows.map(({ contract, app, ps }) => (
-                <div
-                  key={contract.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-4"
-                >
-                  <div className="min-w-0 space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <StatusBadge status={app.status} />
-                      <span className="font-mono text-[11px] text-[#9CA3AF]">
-                        CONTRACT #{contract.id} · APP #{app.id}
-                      </span>
-                    </div>
-                    <div className="font-bold text-sm text-[#18181B] truncate">{ps.title}</div>
-                    <div className="text-[11px] text-[#6B7280]">
-                      Startup #{app.startup_id} · raised {fmtDateTime(contract.created_at)} ·{' '}
-                      {contract.signed_at ? `signed ${fmtDateTime(contract.signed_at)}` : 'not signed'}
-                    </div>
-                  </div>
-
-                  <DocLinkButton
-                    href={`/officer/applications/${app.id}?tab=contract`}
-                    role="officer"
-                    size="sm"
-                    icon={<ArrowRight className="w-3.5 h-3.5" />}
-                  >
-                    Manage pilot
-                  </DocLinkButton>
-                </div>
-              ))}
-            </div>
-          </DocumentForm>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {rows.map(({ contract, app, ps }) => (
+              <ContractCard key={contract.id} contract={contract} app={app} ps={ps} />
+            ))}
+          </div>
         )}
       </div>
     </AppLayout>

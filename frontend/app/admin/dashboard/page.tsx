@@ -3,9 +3,12 @@
 import React from 'react';
 import { AppLayout } from '@/components/shared/AppLayout';
 import { AlertStrip, PageHeader } from '@/components/shared/DesignSystem';
+import { PillLink } from '@/components/shared/design-system';
 import { QuickLink, Stat } from '@/components/shared/Dashboard';
 import { api } from '@/lib/api/client';
 import { useQuery } from '@/lib/hooks/useApi';
+import { PlatformRules } from '@/components/admin/PlatformRules';
+import { ShieldCheck, Users } from 'lucide-react';
 
 export default function AdminDashboardPage() {
   const users = useQuery(() => api.getUsers(), []);
@@ -20,8 +23,14 @@ export default function AdminDashboardPage() {
         <PageHeader
           title="Admin Overview"
           subtitle="Accounts, compliance verification, evaluator panels and audit records."
-          role="admin"
-          breadcrumb={[{ label: 'Admin' }, { label: 'Overview' }]}
+          actions={
+            <PillLink
+              href="/admin/startups/compliance"
+              icon={<ShieldCheck className="w-4 h-4" />}
+            >
+              Compliance Queue
+            </PillLink>
+          }
         />
 
         {pending > 0 && (
@@ -41,6 +50,7 @@ export default function AdminDashboardPage() {
             error={users.error}
             hint={`${(users.data ?? []).filter((u) => u.role === 'startup').length} startups`}
             href="/admin/users"
+            icon={<Users className="w-4 h-4" />}
           />
           <Stat
             role="admin"
@@ -50,6 +60,8 @@ export default function AdminDashboardPage() {
             error={unverified.error}
             hint="Blocked from applying"
             href="/admin/startups/compliance"
+            icon={<ShieldCheck className="w-4 h-4" />}
+            accent
           />
           <Stat
             role="admin"
@@ -70,6 +82,10 @@ export default function AdminDashboardPage() {
             href="/admin/evaluators"
           />
         </div>
+
+        {/* The rules that govern every decision on the platform, read-only —
+            see the component for why none of it is editable. */}
+        <PlatformRules />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <QuickLink

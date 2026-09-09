@@ -27,6 +27,8 @@ import { useMutation, useQuery } from '@/lib/hooks/useApi';
 import { RoleEnum, roleToSlug } from '@/lib/types/api';
 import { ROLE_LABELS } from '@/lib/auth/session';
 import { UserPlus } from 'lucide-react';
+import { ScopeNote } from '@/components/shared/design-system';
+import { ROLE_PALETTE } from '@/components/shared/DesignSystem';
 
 /** Roles an admin may provision. `startup` is deliberately absent. */
 const PROVISIONABLE: RoleEnum[] = ['officer', 'evaluator', 'independent_evaluator', 'admin'];
@@ -70,24 +72,54 @@ export default function AdminUsersPage() {
           breadcrumb={[{ label: 'Admin', href: '/admin/dashboard' }, { label: 'Users' }]}
         />
 
+        {/* One card per role. Clicking one filters the register below. */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {(['startup', 'officer', 'evaluator', 'independent_evaluator', 'admin'] as RoleEnum[]).map(
-            (r) => (
-              <div
-                key={r}
-                className="px-3 py-2.5 rounded-xl bg-white text-center"
-                style={{ border: '1px solid #E5E5E0' }}
-              >
-                <div className="text-2xl font-black text-[#18181B] tabular-nums">
-                  {usersQuery.data ? (counts.get(r) ?? 0) : '—'}
-                </div>
-                <div className="text-[9px] font-bold uppercase tracking-wider text-[#9CA3AF] mt-0.5">
-                  {ROLE_LABELS[r]}
-                </div>
-              </div>
-            ),
+            (r) => {
+              const selected = roleFilter === r;
+              return (
+                <button
+                  key={r}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => setRoleFilter(selected ? '' : r)}
+                  className={`px-4 py-4 rounded-3xl text-left transition-colors cursor-pointer border ${
+                    selected
+                      ? 'bg-[#18181B] text-white border-[#18181B]'
+                      : 'bg-white border-[#E5E5E0] hover:border-[#18181B]'
+                  }`}
+                >
+                  <span
+                    className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 ${
+                      selected ? 'bg-white/10 text-[#D7FD44]' : 'bg-[#F3F3EE] text-[#18181B]'
+                    }`}
+                  >
+                    {ROLE_PALETTE[roleToSlug(r)].icon}
+                  </span>
+                  <div className="text-2xl font-black tabular-nums leading-none">
+                    {usersQuery.data ? (counts.get(r) ?? 0) : '—'}
+                  </div>
+                  <div
+                    className={`text-[9px] font-bold uppercase tracking-wider mt-1 ${
+                      selected ? 'text-gray-300' : 'text-gray-400'
+                    }`}
+                  >
+                    {ROLE_LABELS[r]}
+                  </div>
+                </button>
+              );
+            },
           )}
         </div>
+
+        {/* The admin console is read-only except for three things. Saying so on
+            the page keeps the UI honest about its own scope. */}
+        <ScopeNote>
+          <span className="font-bold text-[#18181B]">Admin writes exactly three things:</span>{' '}
+          account creation (here), evaluator assignment (Evaluators), and compliance
+          verification (Compliance). Everything else in this console is read-only —
+          rules, weights and clause templates are fixed for the MVP.
+        </ScopeNote>
 
         <DocumentForm
           title="Provision an Account"

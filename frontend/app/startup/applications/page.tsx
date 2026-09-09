@@ -17,7 +17,12 @@ import { ApiErrorState, EmptyState, LoadingBlock, fmtDateTime, humanize } from '
 import { api } from '@/lib/api/client';
 import { useQuery } from '@/lib/hooks/useApi';
 import { useSession } from '@/lib/auth/session';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, PieChart } from 'lucide-react';
+import { Card, StatPill } from '@/components/shared/design-system';
+import {
+  ApplicationStatusDonut,
+  ApplicationStatusStepper,
+} from '@/components/shared/domain/Insights';
 
 export default function StartupApplicationsPage() {
   const session = useSession();
@@ -63,6 +68,17 @@ export default function StartupApplicationsPage() {
         )}
 
         {appsQuery.data && appsQuery.data.length > 0 && (
+          <Card
+            icon={<PieChart className="w-4 h-4" />}
+            label="Where my bids stand"
+            aside={<StatPill>{appsQuery.data.length} submitted</StatPill>}
+            className="max-w-sm"
+          >
+            <ApplicationStatusDonut apps={appsQuery.data} unit="Mine" />
+          </Card>
+        )}
+
+        {appsQuery.data && appsQuery.data.length > 0 && (
           <DocumentForm
             title="Submitted Proposals"
             subtitle="GET /applications?startup_id="
@@ -94,6 +110,7 @@ export default function StartupApplicationsPage() {
                         {ps ? `${humanize(ps.category)} · ` : ''}
                         Submitted {fmtDateTime(app.created_at)}
                       </div>
+                      <ApplicationStatusStepper status={app.status} className="max-w-md pt-1" />
                     </div>
 
                     <DocLinkButton
