@@ -46,6 +46,19 @@ import {
   VerificationModeEnum,
 } from '@/lib/types/api';
 import { CheckCircle2, CircleDashed, Save, Upload } from 'lucide-react';
+import {
+  Card,
+  HeroCard,
+  IconBadge,
+  RadarChart,
+  StatPill,
+} from '@/components/shared/design-system';
+import {
+  EligibilityDots,
+  MilestoneStepper,
+  ReadinessTrack,
+  RiskGaugeRow,
+} from '@/components/shared/domain/Insights';
 
 // ─────────────────────────────────────────────────────────────
 // Shared bits
@@ -153,6 +166,11 @@ export const EligibilityPanel: React.FC<{ appId: number; canReview?: boolean }> 
 
       {query.data && (
         <>
+          {/* The five sub-checks at a glance, before the long-form list. */}
+          <div className="mb-4 p-4 rounded-2xl bg-[#F8F8F4]">
+            <EligibilityDots check={query.data} labelled />
+          </div>
+
           <div className="space-y-0">
             <KeyValue label="DPIIT verified" value={humanize(query.data.dpiit_verified)} />
             <KeyValue label="Entity valid" value={humanize(query.data.entity_valid)} />
@@ -410,6 +428,16 @@ export const ScoresPanel: React.FC<{ appId: number; showCompleteness?: boolean }
 
   const criterionById = new Map((criteria.data ?? []).map((c) => [c.id, c]));
 
+  // One axis per rubric criterion, averaged across the evaluators who scored it.
+  // Weights come from /rubric-criteria; nothing here is a made-up dimension.
+  const radarAxes = (criteria.data ?? []).map((criterion) => {
+    const rows = (scores.data ?? []).filter((r) => r.criterion_id === criterion.id);
+    const mean = rows.length
+      ? rows.reduce((sum, r) => sum + r.score, 0) / rows.length
+      : 0;
+    return { label: criterion.name.split(' ')[0], value: mean / 100 };
+  });
+
   // One row per evaluator, so the officer sees each panellist's sheet.
   const byEvaluator = new Map<number, typeof scores.data>();
   for (const s of scores.data ?? []) {
@@ -449,7 +477,20 @@ export const ScoresPanel: React.FC<{ appId: number; showCompleteness?: boolean }
         <EmptyState title="No scores submitted yet" hint="Assigned evaluators submit a full sheet in one go." />
       )}
 
-      <div className="space-y-5">
+      {/* Criterion radar — mean score per criterion across evaluators. */}
+      {scores.data && scores.data.length > 0 && radarAxes.length >= 3 && (
+        <div className="mb-5 rounded-2xl bg-[#F8F8F4] p-4">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#18181B]">
+              Criterion profile
+            </span>
+            <span className="text-[10px] text-gray-400">Mean of submitted sheets, 0–100</span>
+          </div>
+          <RadarChart axes={radarAxes} size={220} className="mx-auto" />
+        </div>
+      )}
+
+      <div className="space-y-4">
         {[...byEvaluator.entries()].map(([evaluatorId, rows]) => {
           const list = rows ?? [];
           // Weighted total, using each criterion's weight from /rubric-criteria.
@@ -459,18 +500,19 @@ export const ScoresPanel: React.FC<{ appId: number; showCompleteness?: boolean }
           }, 0);
 
           return (
-            <div key={evaluatorId} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-[#1A1A1A]">
+            <div
+              key={evaluatorId}
+              className="rounded-2xl border border-[#E5E5E0] p-4 space-y-2"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold text-[#18181B]">
                   Evaluator #{evaluatorId}
                 </span>
                 {criteria.data && (
-                  <span className="text-[11px] font-bold text-[#6B6560]">
-                    Weighted total {weighted.toFixed(2)}
-                  </span>
+                  <StatPill>Weighted {weighted.toFixed(2)}</StatPill>
                 )}
               </div>
-              <div className="divide-y divide-[#F1EDE4]">
+              <div className="divide-y divide-[#F0F0EA]">
                 {list.map((row) => {
                   const criterion = criterionById.get(row.criterion_id);
                   return (
@@ -576,6 +618,33 @@ export const RiskProfilePanel: React.FC<{ appId: number }> = ({ appId }) => {
         />
       )}
 
+      {/* Six gauges, coloured by band. When both stages exist they sit side by
+          side so the narrowing across the pipeline is visible. */}
+      {query.data && query.data.length > 0 && (
+        <div className="mb-5 rounded-2xl bg-[#F8F8F4] p-4">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#18181B]">
+              Risk by category
+            </span>
+            <StatPill
+              tone={
+                query.data.some((p) => p.overall_risk === 'high')
+                  ? 'danger'
+                  : query.data.some((p) => p.overall_risk === 'medium')
+                    ? 'warn'
+                    : 'ok'
+              }
+            >
+              Overall{' '}
+              {humanize(
+                (query.data.find((p) => p.stage === 'final') ?? query.data[0]).overall_risk,
+              )}
+            </StatPill>
+          </div>
+          <RiskGaugeRow profiles={query.data} />
+        </div>
+      )}
+
       <div className="space-y-5">
         {(query.data ?? []).map((profile) => (
           <div key={profile.id} className="space-y-2.5">
@@ -605,10 +674,10 @@ export const RiskProfilePanel: React.FC<{ appId: number }> = ({ appId }) => {
                 return (
                   <div
                     key={label}
-                    className="px-3 py-2 rounded-lg text-center"
+                    className="px-3 py-2 rounded-2xl text-center"
                     style={{
                       backgroundColor: colors.bg,
-                      border: `${isOverall ? 2 : 1}px solid ${colors.border}`,
+                      border: isOverall ? `2px solid ${colors.text}` : 'none',
                     }}
                   >
                     <div className="text-[9px] font-bold uppercase tracking-wider text-[#A89F94]">
@@ -841,17 +910,46 @@ export const DecisionReadinessPanel: React.FC<{
 
       {query.data && (
         <>
+          {/* Six gates on a track — all lime means Select unlocks. */}
+          <div className="rounded-2xl bg-[#F8F8F4] p-4 mb-4">
+            <ReadinessTrack readiness={query.data} />
+          </div>
+
+          <HeroCard
+            className="mb-4"
+            state={ready ? 'ready' : 'ink'}
+            icon={
+              ready ? (
+                <CheckCircle2 className="w-4 h-4" />
+              ) : (
+                <CircleDashed className="w-4 h-4" />
+              )
+            }
+            label="Selection gate"
+            aside={
+              <StatPill tone={ready ? 'ink' : 'warn'}>
+                {
+                  READINESS_CHECKS.filter((c) => query.data![c.key]).length
+                }{' '}
+                / {READINESS_CHECKS.length}
+              </StatPill>
+            }
+            title={ready ? 'Ready to select' : 'Gates still open'}
+            body={
+              ready
+                ? 'Every gate is satisfied. The server will re-check them when you select.'
+                : 'Selection stays locked until all six gates pass.'
+            }
+          />
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {READINESS_CHECKS.map((check) => {
               const ok = query.data![check.key];
               return (
                 <div
                   key={check.key}
-                  className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg"
-                  style={{
-                    backgroundColor: ok ? '#EAF7ED' : '#F8F6F1',
-                    border: `1px solid ${ok ? '#B8E6C4' : '#E8E2D5'}`,
-                  }}
+                  className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl"
+                  style={{ backgroundColor: ok ? '#EAF7ED' : '#F4F4EF' }}
                 >
                   {ok ? (
                     <CheckCircle2 className="w-4 h-4 text-[#1E9E5A] shrink-0" />
@@ -992,6 +1090,7 @@ export const SandboxTrialPanel: React.FC<{ appId: number; canRecord?: boolean }>
 
       {trial && (
         <div className="space-y-3">
+          {/* The four checks the independent evaluator records. */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {SANDBOX_CHECKS.map((c) => {
               const value = trial[c.key];
@@ -999,25 +1098,55 @@ export const SandboxTrialPanel: React.FC<{ appId: number; canRecord?: boolean }>
               return (
                 <div
                   key={c.key}
-                  className="px-3 py-2 rounded-lg text-center"
-                  style={{
-                    backgroundColor: value ? (ok ? '#EAF7ED' : '#FEF2F2') : '#F8F6F1',
-                    border: `1px solid ${value ? (ok ? '#B8E6C4' : '#FECACA') : '#E8E2D5'}`,
-                  }}
+                  className="px-3 py-3 rounded-2xl flex flex-col items-center gap-1.5"
+                  style={{ backgroundColor: value ? (ok ? '#EAF7ED' : '#FBEAEC') : '#F4F4EF' }}
                 >
-                  <div className="text-[9px] font-bold uppercase tracking-wider text-[#A89F94]">
+                  <IconBadge
+                    size="sm"
+                    tone={value ? (ok ? 'ok' : 'danger') : 'muted'}
+                    icon={
+                      value && ok ? (
+                        <CheckCircle2 className="w-4 h-4" />
+                      ) : (
+                        <CircleDashed className="w-4 h-4" />
+                      )
+                    }
+                  />
+                  <div className="text-[10px] font-bold text-[#18181B] text-center leading-tight">
                     {c.label}
                   </div>
                   <div
-                    className="text-xs font-black uppercase mt-0.5"
-                    style={{ color: value ? (ok ? '#1E9E5A' : '#DC2626') : '#A89F94' }}
+                    className="text-[10px] font-black uppercase"
+                    style={{ color: value ? (ok ? '#1E9E5A' : '#C81E4A') : '#9CA3AF' }}
                   >
-                    {value ?? '—'}
+                    {value ?? 'pending'}
                   </div>
                 </div>
               );
             })}
           </div>
+
+          {/* Verdict, using the same flip-colour hero as decision readiness. */}
+          {trial.verdict && (
+            <HeroCard
+              state={trial.verdict === 'promising' ? 'ready' : 'ink'}
+              icon={<CheckCircle2 className="w-4 h-4" />}
+              label="Sandbox verdict"
+              aside={
+                trial.verification_mode ? (
+                  <StatPill tone={trial.verdict === 'promising' ? 'ink' : 'white'}>
+                    {humanize(trial.verification_mode)}
+                  </StatPill>
+                ) : undefined
+              }
+              title={humanize(trial.verdict)}
+              body={
+                trial.completed_at
+                  ? `Recorded ${fmtDateTime(trial.completed_at)}.`
+                  : 'Trial still open.'
+              }
+            />
+          )}
 
           <div className="space-y-0">
             <KeyValue label="Verdict" value={humanize(trial.verdict)} />
@@ -1158,6 +1287,47 @@ export const SandboxTrialPanel: React.FC<{ appId: number; canRecord?: boolean }>
 // Contract — Layer 5, router not mounted
 // ─────────────────────────────────────────────────────────────
 
+/**
+ * Renders `Contract.clause_snapshot` as one expandable card per category.
+ * The snapshot is a frozen server-side dict, so this is a reader, not an
+ * editor — there is no clause-editing endpoint.
+ */
+const ClauseCards: React.FC<{ snapshot: Record<string, unknown> }> = ({ snapshot }) => {
+  const [open, setOpen] = useState<string | null>(null);
+  const entries = Object.entries(snapshot ?? {});
+
+  if (entries.length === 0) {
+    return <p className="text-xs text-gray-500">No clauses recorded on this contract.</p>;
+  }
+
+  return (
+    <div className="space-y-2">
+      {entries.map(([key, value]) => {
+        const expanded = open === key;
+        return (
+          <div key={key} className="rounded-2xl border border-[#E5E5E0] overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setOpen(expanded ? null : key)}
+              className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-[#F8F8F4] transition-colors cursor-pointer"
+            >
+              <span className="text-xs font-bold text-[#18181B]">{humanize(key)}</span>
+              <span className="text-[10px] font-bold text-gray-400">
+                {expanded ? 'Hide' : 'Show'}
+              </span>
+            </button>
+            {expanded && (
+              <div className="px-4 pb-3 text-[11px] text-[#6B7280] leading-relaxed whitespace-pre-wrap break-words">
+                {typeof value === 'string' ? value : JSON.stringify(value, null, 2)}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 export const ContractPanel: React.FC<{
   appId: number;
   canCreate?: boolean;
@@ -1165,6 +1335,13 @@ export const ContractPanel: React.FC<{
 }> = ({ appId, canCreate = false, onContract }) => {
   const query = useQuery(() => api.getContract(appId), [appId]);
   const create = useMutation();
+
+  // Read-only preview of the five fixed milestones, once a contract exists.
+  const milestonesPreview = useQuery(
+    () => orNull(api.getMilestones(query.data!.id)),
+    [query.data?.id],
+    { enabled: Boolean(query.data) },
+  );
 
   useEffect(() => {
     if (query.data) onContract?.(query.data.id);
@@ -1201,15 +1378,19 @@ export const ContractPanel: React.FC<{
           </div>
 
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-wider text-[#A89F94] mb-1.5">
-              Clause snapshot
+            <div className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280] mb-2">
+              Clause snapshot — frozen at contract creation
             </div>
-            <pre
-              className="text-[11px] font-mono p-3 rounded-lg overflow-x-auto leading-relaxed"
-              style={{ backgroundColor: '#F8F6F1', border: '1px solid #E8E2D5' }}
-            >
-              {JSON.stringify(query.data.clause_snapshot, null, 2)}
-            </pre>
+            <ClauseCards snapshot={query.data.clause_snapshot} />
+          </div>
+
+          {/* What comes next, using the same stepper the officer and the
+              independent evaluator see. */}
+          <div className="rounded-2xl bg-[#F8F8F4] p-4">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280] mb-3">
+              Milestones ahead
+            </div>
+            <MilestoneStepper milestones={milestonesPreview.data ?? []} />
           </div>
         </div>
       )}
@@ -1327,7 +1508,15 @@ export const MilestonesPanel: React.FC<{
 
       <MutationFeedback state={action} />
 
-      <div className="divide-y divide-[#F1EDE4]">
+      {/* Fixed MilestoneTypeEnum order; each node carries its real status and
+          payment status. */}
+      {milestones.length > 0 && (
+        <div className="rounded-2xl bg-[#F8F8F4] p-4 mb-4">
+          <MilestoneStepper milestones={milestones} />
+        </div>
+      )}
+
+      <div className="divide-y divide-[#F0F0EA]">
         {milestones.map((m) => (
           <div key={m.id} className="py-4 space-y-3">
             <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -1457,19 +1646,37 @@ export const MilestonesPanel: React.FC<{
 
             {canReview && m.status === 'submitted' && (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
-                <DocSelect
+                <div
+                  className="grid grid-cols-2 gap-2"
+                  role="group"
                   aria-label="Review outcome"
-                  value={reviews[m.id]?.status ?? 'accepted'}
-                  onChange={(e) =>
-                    setReviews((r) => ({
-                      ...r,
-                      [m.id]: { ...r[m.id], status: e.target.value as MilestoneStatusEnum },
-                    }))
-                  }
                 >
-                  <option value="accepted">Accept</option>
-                  <option value="rejected">Reject</option>
-                </DocSelect>
+                  {(['accepted', 'rejected'] as MilestoneStatusEnum[]).map((option) => {
+                    const selected = (reviews[m.id]?.status ?? 'accepted') === option;
+                    return (
+                      <button
+                        key={option}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() =>
+                          setReviews((r) => ({
+                            ...r,
+                            [m.id]: { ...r[m.id], status: option },
+                          }))
+                        }
+                        className={`py-2.5 rounded-full text-[11px] font-bold capitalize transition-colors cursor-pointer ${
+                          selected
+                            ? option === 'accepted'
+                              ? 'bg-[#18181B] text-white'
+                              : 'bg-[#C81E4A] text-white'
+                            : 'bg-white text-[#18181B] border border-[#E5E5E0] hover:border-[#18181B]'
+                        }`}
+                      >
+                        {option === 'accepted' ? 'Accept' : 'Reject'}
+                      </button>
+                    );
+                  })}
+                </div>
                 <DocSelect
                   aria-label="Payment status"
                   value={reviews[m.id]?.payment_status ?? 'not_due'}
@@ -1565,7 +1772,59 @@ export const KPIVerdictsPanel: React.FC<{
         />
       )}
 
-      <div className="divide-y divide-[#F1EDE4]">
+      {verdicts.length > 0 && (
+        <>
+          {/* Pilot success is ALL-met vs partial — the same rule the backend
+              applies; nothing new is scored here. */}
+          <HeroCard
+            className="mb-4"
+            state={verdicts.every((v) => v.verdict === 'met') ? 'ready' : 'ink'}
+            icon={<CheckCircle2 className="w-4 h-4" />}
+            label="Pilot outcome signal"
+            aside={
+              <StatPill tone={verdicts.every((v) => v.verdict === 'met') ? 'ink' : 'warn'}>
+                {verdicts.filter((v) => v.verdict === 'met').length} / {verdicts.length} met
+              </StatPill>
+            }
+            title={
+              verdicts.every((v) => v.verdict === 'met') ? 'All KPIs met' : 'Partial success'
+            }
+            body="Computed from the recorded verdicts only."
+          />
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+            {verdicts.map((v) => {
+              const kpi = kpiById.get(v.kpi_id);
+              const met = v.verdict === 'met';
+              return (
+                <div
+                  key={`grid-${v.id}`}
+                  className="px-3 py-3 rounded-2xl flex flex-col items-center gap-1.5 text-center"
+                  style={{ backgroundColor: met ? '#EAF7ED' : '#FBEAEC' }}
+                >
+                  <IconBadge
+                    size="sm"
+                    tone={met ? 'ok' : 'danger'}
+                    icon={
+                      met ? (
+                        <CheckCircle2 className="w-4 h-4" />
+                      ) : (
+                        <CircleDashed className="w-4 h-4" />
+                      )
+                    }
+                  />
+                  <div className="text-[10px] font-bold text-[#18181B] leading-tight">
+                    {kpi?.name ?? `KPI #${v.kpi_id}`}
+                  </div>
+                  <StatPill tone="ghost">{humanize(v.verification_mode)}</StatPill>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      <div className="divide-y divide-[#F0F0EA]">
         {verdicts.map((v) => {
           const kpi = kpiById.get(v.kpi_id);
           const met = v.verdict === 'met';
@@ -1747,11 +2006,20 @@ export const PilotOutcomePanel: React.FC<{ contractId: number; canDecide?: boole
       )}
 
       {outcome && (
-        <div className="space-y-0">
-          <KeyValue label="Decision" value={humanize(outcome.overall_result)} />
-          <KeyValue label="Rationale" value={outcome.rationale} />
-          <KeyValue label="Decided by" value={`User #${outcome.decided_by}`} />
-          <KeyValue label="Decided at" value={fmtDateTime(outcome.decided_at)} />
+        <div className="space-y-3">
+          <HeroCard
+            state={outcome.overall_result === 'scale' ? 'ready' : 'ink'}
+            icon={<CheckCircle2 className="w-4 h-4" />}
+            label="Decision"
+            title={humanize(outcome.overall_result)}
+            body={`Recorded by user #${outcome.decided_by} on ${fmtDateTime(outcome.decided_at)}.`}
+          />
+
+          {outcome.rationale && (
+            <blockquote className="rounded-2xl bg-[#F8F8F4] border-l-4 border-[#18181B] px-4 py-3 text-xs text-[#18181B] leading-relaxed">
+              {outcome.rationale}
+            </blockquote>
+          )}
         </div>
       )}
 
@@ -1771,19 +2039,31 @@ export const PilotOutcomePanel: React.FC<{ contractId: number; canDecide?: boole
             reasoning recorded alongside it.
           </p>
 
-          <label className="space-y-1 block">
-            <span className="text-[11px] font-bold text-[#6B6560] uppercase tracking-wider">
+          <div className="space-y-1.5">
+            <span className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">
               Decision
             </span>
-            <DocSelect
-              value={result}
-              onChange={(e) => setResult(e.target.value as PilotOutcomeResultEnum)}
-            >
-              <option value="scale">Scale</option>
-              <option value="iterate">Iterate</option>
-              <option value="stop">Stop</option>
-            </DocSelect>
-          </label>
+            <div className="grid grid-cols-3 gap-2">
+              {(['scale', 'iterate', 'stop'] as PilotOutcomeResultEnum[]).map((option) => {
+                const selected = result === option;
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => setResult(option)}
+                    className={`py-3 rounded-full text-xs font-bold capitalize transition-colors cursor-pointer ${
+                      selected
+                        ? 'bg-[#18181B] text-white shadow-md'
+                        : 'bg-white text-[#18181B] border border-[#E5E5E0] hover:border-[#18181B]'
+                    }`}
+                  >
+                    {option}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           <DocTextarea
             rows={3}

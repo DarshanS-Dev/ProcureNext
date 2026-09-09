@@ -94,8 +94,8 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, label, dot = t
   const displayLabel = label ?? status.replace(/_/g, ' ');
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[11px] font-bold tracking-wide uppercase ${className}`}
-      style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}` }}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-wide uppercase whitespace-nowrap ${className}`}
+      style={{ backgroundColor: colors.bg, color: colors.text }}
     >
       {dot && (
         <span
@@ -115,8 +115,8 @@ export const RoleBadge: React.FC<{ role: UserRole; className?: string }> = ({ ro
   const p = ROLE_PALETTE[role];
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide ${className}`}
-      style={{ backgroundColor: p.tintBg, color: p.accentText, border: `1px solid ${p.accentBorder}` }}
+      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-wide ${className}`}
+      style={{ backgroundColor: p.tintBg, color: p.accentText }}
     >
       <span>{p.icon}</span>
       <span>{p.label}</span>
@@ -192,8 +192,8 @@ interface DataCardProps extends React.HTMLAttributes<HTMLDivElement> {
 export const DataCard: React.FC<DataCardProps> = ({ children, className = '', noPad = false, hover = false, style, ...props }) => (
   <div
     {...props}
-    className={`bg-white rounded-xl border border-[#E8E2D5] ${noPad ? '' : 'p-5'} relative overflow-hidden transition-all duration-200 ${hover ? 'hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 cursor-pointer' : ''} ${className}`}
-    style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.04)', ...style }}
+    className={`bg-white rounded-3xl border border-[#E5E5E0] shadow-sm ${noPad ? '' : 'p-6'} relative transition-all duration-200 ${hover ? 'hover:border-[#18181B] hover:-translate-y-0.5 cursor-pointer' : ''} ${className}`}
+    style={style}
   >
     {children}
   </div>
@@ -322,8 +322,8 @@ export const DocInput: React.FC<DocInputProps> = ({ lineStyle = true, className 
   <input
     {...props}
     className={lineStyle
-      ? `w-full bg-transparent border-0 border-b-2 border-[#E8E2D5] focus:border-[#1A1A1A] outline-none px-0 py-2 text-sm text-[#1A1A1A] font-medium placeholder:text-[#C4B9AE] placeholder:italic transition-colors ${className}`
-      : `w-full bg-[#F8F6F1] border border-[#E8E2D5] rounded-lg px-3 py-2.5 text-sm text-[#1A1A1A] font-medium placeholder:text-[#C4B9AE] focus:outline-none focus:border-[#1A1A1A] transition-colors ${className}`
+      ? `w-full bg-transparent border-0 border-b-2 border-[#E5E5E0] focus:border-[#18181B] outline-none px-0 py-2 text-sm text-[#18181B] font-medium placeholder:text-gray-400 transition-colors ${className}`
+      : `w-full bg-[#F4F4EF] border border-[#E5E5E0] rounded-2xl px-4 py-2.5 text-sm text-[#18181B] font-medium placeholder:text-gray-400 focus:outline-none focus:border-[#18181B] transition-colors ${className}`
     }
   />
 );
@@ -335,8 +335,8 @@ export const DocTextarea: React.FC<DocTextareaProps> = ({ lineStyle = false, cla
   <textarea
     {...props}
     className={lineStyle
-      ? `w-full bg-[#FDFBF7] border border-[#E8E2D5] rounded-lg px-3 py-3 text-sm text-[#1A1A1A] font-medium placeholder:text-[#C4B9AE] placeholder:italic focus:outline-none focus:border-[#1A1A1A] transition-colors leading-7 ${className}`
-      : `w-full bg-[#F8F6F1] border border-[#E8E2D5] rounded-lg px-3 py-3 text-sm text-[#1A1A1A] font-medium placeholder:text-[#C4B9AE] focus:outline-none focus:border-[#1A1A1A] transition-colors ${className}`
+      ? `w-full bg-white border border-[#E5E5E0] rounded-2xl px-4 py-3 text-sm text-[#18181B] font-medium placeholder:text-gray-400 focus:outline-none focus:border-[#18181B] transition-colors leading-7 ${className}`
+      : `w-full bg-[#F4F4EF] border border-[#E5E5E0] rounded-2xl px-4 py-3 text-sm text-[#18181B] font-medium placeholder:text-gray-400 focus:outline-none focus:border-[#18181B] transition-colors ${className}`
     }
   />
 );
@@ -344,7 +344,7 @@ export const DocTextarea: React.FC<DocTextareaProps> = ({ lineStyle = false, cla
 export const DocSelect: React.FC<React.SelectHTMLAttributes<HTMLSelectElement>> = ({ className = '', children, ...props }) => (
   <select
     {...props}
-    className={`w-full bg-[#F8F6F1] border border-[#E8E2D5] rounded-lg px-3 py-2.5 text-sm text-[#1A1A1A] font-medium focus:outline-none focus:border-[#1A1A1A] transition-colors cursor-pointer appearance-none ${className}`}
+    className={`w-full bg-[#F4F4EF] border border-[#E5E5E0] rounded-2xl px-4 py-2.5 text-sm text-[#18181B] font-medium focus:outline-none focus:border-[#18181B] transition-colors cursor-pointer appearance-none ${className}`}
     style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B6560' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
   >
     {children}
@@ -378,47 +378,22 @@ export const DocButton: React.FC<ButtonProps> = ({
   let baseClass = '';
 
   if (variant === 'primary') {
-    if (palette) {
-      colorStyle = {
-        backgroundColor: palette.accentText,
-        color: '#fff',
-        border: `1.5px solid ${palette.accentText}`,
-      };
-    } else {
-      baseClass = 'bg-[#1A1A1A] text-white border border-[#1A1A1A]';
-    }
+    baseClass = 'bg-[#18181B] hover:bg-black text-white shadow-md';
   } else if (variant === 'secondary') {
-    if (palette) {
-      colorStyle = {
-        backgroundColor: palette.tintBg,
-        color: palette.accentText,
-        border: `1.5px solid ${palette.accentBorder}`,
-      };
-    } else {
-      baseClass = 'bg-[#F8F6F1] text-[#1A1A1A] border border-[#E8E2D5]';
-    }
+    baseClass = 'bg-white text-[#18181B] border border-[#E5E5E0] hover:border-[#18181B]';
   } else if (variant === 'ghost') {
-    baseClass = 'bg-transparent text-[#6B6560] border border-transparent hover:bg-[#F8F6F1]';
+    baseClass = 'bg-transparent text-[#6B7280] hover:text-[#18181B] hover:bg-[#F4F4EF]';
   } else if (variant === 'danger') {
-    baseClass = 'bg-[#FBEAEC] text-[#C81E4A] border border-[#F3BECA] hover:bg-[#C81E4A] hover:text-white';
+    baseClass = 'bg-[#FBEAEC] text-[#C81E4A] hover:bg-[#C81E4A] hover:text-white';
   } else if (variant === 'stamp') {
-    // Looks like a rubber stamp
-    if (palette) {
-      colorStyle = {
-        color: palette.accentText,
-        border: `2px solid ${palette.accentText}`,
-        backgroundColor: 'transparent',
-      };
-    } else {
-      baseClass = 'text-[#1A1A1A] border-2 border-[#1A1A1A]';
-    }
+    baseClass = 'bg-[#D7FD44] text-[#18181B] hover:bg-[#C3EB30]';
   }
 
   return (
     <motion.button
       whileHover={{ y: -1, boxShadow: '0 4px 12px rgba(0,0,0,0.12)' }}
       whileTap={{ y: 0, boxShadow: 'none' }}
-      className={`inline-flex items-center justify-center font-bold uppercase tracking-wide rounded-lg cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${sizeClass} ${baseClass} ${className}`}
+      className={`inline-flex items-center justify-center font-bold tracking-wide rounded-full cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${sizeClass} ${baseClass} ${className}`}
       style={{ ...colorStyle, ...style }}
       onClick={onClick}
       disabled={loading || disabled}
@@ -522,7 +497,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
       className="flex flex-col gap-3 pb-5 mb-2"
-      style={{ borderBottom: '1px solid #EDE7DB' }}
+      style={{ borderBottom: '1px solid #E5E5E0' }}
     >
       {/* Breadcrumb */}
       {breadcrumb && breadcrumb.length > 0 && (
@@ -547,17 +522,14 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           {/* Phase chip */}
           {phase && (
             <div className="inline-flex items-center gap-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-[#A89F94] bg-[#F8F6F1] border border-[#E8E2D5] px-2 py-0.5 rounded">
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#6B7280] bg-[#F3F3EE] px-2.5 py-1 rounded-full">
                 {phase}
               </span>
             </div>
           )}
 
           {/* Title */}
-          <h1
-            className="text-2xl font-bold text-[#1A1A1A] leading-tight"
-            style={{ fontFamily: "'Playfair Display', serif" }}
-          >
+          <h1 className="text-3xl sm:text-4xl font-black text-[#18181B] tracking-tight leading-tight">
             {title}
           </h1>
 
@@ -610,8 +582,8 @@ export const AlertStrip: React.FC<AlertStripProps> = ({ type, children, title, m
   const s = ALERT_STYLES[type] || ALERT_STYLES.info;
   return (
     <div
-      className={`p-3.5 rounded-lg border flex items-start gap-2.5 text-xs ${className}`}
-      style={{ backgroundColor: s.bg, borderColor: s.border, color: s.text }}
+      className={`p-4 rounded-2xl flex items-start gap-2.5 text-xs ${className}`}
+      style={{ backgroundColor: s.bg, color: s.text }}
     >
       <span className="text-sm shrink-0">{s.icon}</span>
       <div className="space-y-0.5">
@@ -686,9 +658,9 @@ export const DocRow: React.FC<DocRowProps> = ({
   title, subtitle, meta, badge, actions, onClick, refNum, children, className = '', hover = true
 }) => (
   <motion.div
-    whileHover={hover ? { backgroundColor: '#FDFBF7' } : undefined}
+    whileHover={hover ? { backgroundColor: '#F8F8F4' } : undefined}
     onClick={onClick}
-    className={`px-5 py-4 border-b border-[#EDE7DB] last:border-b-0 transition-colors ${onClick ? 'cursor-pointer' : ''} ${className}`}
+    className={`px-6 py-4 border-b border-[#F0F0EA] last:border-b-0 transition-colors ${onClick ? 'cursor-pointer' : ''} ${className}`}
   >
     {children ? children : (
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -716,12 +688,12 @@ export const DocRow: React.FC<DocRowProps> = ({
 // ─────────────────────────────────────────────────
 export const SectionDivider: React.FC<{ label?: string }> = ({ label }) => (
   <div className="flex items-center gap-3 my-4">
-    <div className="flex-1 border-t border-[#EDE7DB]" />
+    <div className="flex-1 border-t border-[#F0F0EA]" />
     {label && (
-      <span className="text-[10px] font-bold uppercase tracking-widest text-[#A89F94] bg-[#F8F6F1] px-2 py-0.5 rounded">
+      <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#6B7280] bg-[#F3F3EE] px-2.5 py-1 rounded-full">
         {label}
       </span>
     )}
-    <div className="flex-1 border-t border-[#EDE7DB]" />
+    <div className="flex-1 border-t border-[#F0F0EA]" />
   </div>
 );

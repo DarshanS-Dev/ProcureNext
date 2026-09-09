@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Pieces shared by the five role dashboards.
+ * Pieces shared by the five role dashboards, on the design system.
  *
  * `Stat` deliberately renders an em-dash rather than 0 while a figure is still
  * loading or failed — a dashboard that shows "0 applications" when the request
@@ -10,8 +10,8 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { DataCard } from '@/components/shared/DesignSystem';
-import { ROLE_PALETTE } from '@/components/shared/DesignSystem';
+import { ArrowUpRight } from 'lucide-react';
+import { BigStat, Eyebrow, IconBadge } from '@/components/shared/design-system';
 import { UserRole } from '@/lib/types/api';
 import { ApiError } from '@/lib/api/client';
 
@@ -22,34 +22,41 @@ export const Stat: React.FC<{
   error?: ApiError | null;
   hint?: string;
   href?: string;
-  role: UserRole;
-}> = ({ label, value, loading, error, hint, href, role }) => {
-  const palette = ROLE_PALETTE[role];
-
+  icon?: React.ReactNode;
+  /** Kept for call-site compatibility; the palette is now role-independent. */
+  role?: UserRole;
+  /** Renders the one emphasised stat on a dashboard in lime. */
+  accent?: boolean;
+}> = ({ label, value, loading, error, hint, href, icon, accent = false }) => {
   const body = (
-    <DataCard hover={Boolean(href)} className="h-full">
-      <div className="space-y-1">
-        <div className="text-[11px] font-bold uppercase tracking-wider text-[#A89F94]">
-          {label}
+    <div
+      className={`rounded-3xl p-5 border shadow-sm h-full flex flex-col justify-between transition-colors ${
+        accent
+          ? 'bg-[#D7FD44] border-[#C3EB30]'
+          : 'bg-white border-[#E5E5E0] ' + (href ? 'hover:border-[#18181B]' : '')
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          {icon && <IconBadge icon={icon} size="sm" tone={accent ? 'ink' : 'muted'} />}
+          <Eyebrow>{label}</Eyebrow>
         </div>
+        {href && <ArrowUpRight className="w-4 h-4 text-gray-400 shrink-0" />}
+      </div>
+
+      <div className="mt-4">
         {loading ? (
-          <div className="h-8 w-16 rounded bg-[#F1EDE4] animate-pulse" />
+          <div className="h-9 w-16 rounded-full bg-[#F1F1EC] animate-pulse" />
         ) : (
-          <div
-            className="text-3xl font-black tabular-nums"
-            style={{ color: error ? '#A89F94' : palette.accentText }}
-            title={error ? error.detail : undefined}
-          >
-            {error || value === undefined ? '—' : value}
-          </div>
+          <BigStat value={error || value === undefined ? '—' : value} />
         )}
         {(hint || error) && (
-          <div className="text-[11px] text-[#6B6560] leading-snug">
+          <div className="text-[11px] text-gray-500 leading-snug mt-1" title={error?.detail}>
             {error ? 'Unavailable' : hint}
           </div>
         )}
       </div>
-    </DataCard>
+    </div>
   );
 
   return href ? (
@@ -65,29 +72,19 @@ export const QuickLink: React.FC<{
   href: string;
   title: string;
   description: string;
-  role: UserRole;
-}> = ({ href, title, description, role }) => {
-  const palette = ROLE_PALETTE[role];
-  return (
-    <Link href={href} className="block">
-      <DataCard hover>
-        <div className="flex items-start gap-3">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-            style={{
-              backgroundColor: palette.tintBg,
-              border: `1px solid ${palette.accentBorder}`,
-              color: palette.accentText,
-            }}
-          >
-            {palette.icon}
-          </div>
-          <div>
-            <div className="text-xs font-bold text-[#1A1A1A]">{title}</div>
-            <p className="text-[11px] text-[#6B6560] leading-relaxed mt-0.5">{description}</p>
-          </div>
+  icon?: React.ReactNode;
+  role?: UserRole;
+}> = ({ href, title, description, icon }) => (
+  <Link href={href} className="block h-full">
+    <div className="bg-white rounded-3xl p-5 border border-[#E5E5E0] shadow-xs flex items-start gap-4 hover:border-[#18181B] transition-colors group h-full">
+      <IconBadge icon={icon ?? <ArrowUpRight className="w-5 h-5" />} size="lg" className="mt-0.5" />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <h5 className="text-sm font-bold text-[#18181B] group-hover:underline">{title}</h5>
+          <ArrowUpRight className="w-4 h-4 text-gray-400 group-hover:text-[#18181B] transition-colors shrink-0" />
         </div>
-      </DataCard>
-    </Link>
-  );
-};
+        <p className="text-xs text-gray-500 mt-1 leading-relaxed">{description}</p>
+      </div>
+    </div>
+  </Link>
+);
