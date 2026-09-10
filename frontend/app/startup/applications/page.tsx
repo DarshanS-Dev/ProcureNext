@@ -16,8 +16,8 @@ import { ApiErrorState, EmptyState, LoadingBlock, fmtDateTime, humanize } from '
 import { api } from '@/lib/api/client';
 import { useQuery } from '@/lib/hooks/useApi';
 import { useSession } from '@/lib/auth/session';
-import { ArrowRight, ClipboardList, PieChart, Search } from 'lucide-react';
-import { Card, PageHeader, PillLink, StatPill } from '@/components/shared/design-system';
+import { ArrowRight, ClipboardList, PieChart} from 'lucide-react';
+import { Card, PageHeader, StatPill } from '@/components/shared/design-system';
 import {
   ApplicationStatusDonut,
   ApplicationStatusStepper,
@@ -43,11 +43,6 @@ export default function StartupApplicationsPage() {
           glyph={<ClipboardList className="w-5 h-5 text-[#18181B]" />}
           line1Tail="Applications"
           subtitle="Every proposal you have submitted, and where each one sits in the pipeline."
-          action={
-            <PillLink href="/startup/discover" icon={<Search className="w-4 h-4" />}>
-              Explore Opportunities
-            </PillLink>
-          }
         />
 
         {(appsQuery.loading || !session) && <LoadingBlock label="Loading applications…" />}

@@ -6,13 +6,8 @@ import { AlertStrip } from '@/components/shared/DesignSystem';
 import {
   Card,
   DonutRing,
-  DotTrack,
-  HeroCard,
   PageHeader as Header,
-  PillLink,
-  ScopeNote,
   StatPill,
-  Stepper,
 } from '@/components/shared/design-system';
 
 import { QuickLink, Stat } from '@/components/shared/Dashboard';
@@ -36,11 +31,6 @@ export default function AdminDashboardPage() {
           glyph={<Sliders className="w-5 h-5 text-[#18181B]" />}
           line1Tail="Console"
           subtitle="Accounts, compliance verification, evaluator panels and audit records."
-          action={
-            <PillLink href="/admin/startups/compliance" icon={<ShieldCheck className="w-4 h-4" />}>
-              Compliance Queue
-            </PillLink>
-          }
         />
 
         {pending > 0 && (

@@ -21,7 +21,6 @@ import {
   DonutRing,
   HeroCard,
   PageHeader,
-  PillLink,
   StatPill,
 } from '@/components/shared/design-system';
 import { BarChart3, FileText, ListChecks, PieChart, Scale, ShieldAlert, Sliders } from 'lucide-react';
@@ -63,11 +62,6 @@ export default function EvaluatorDashboardPage() {
           line2="and"
           accentGlyph={<Scale className="w-5 h-5" />}
           line2Tail="Rubric"
-          action={
-            <PillLink href="/evaluator/assigned" icon={<ListChecks className="w-4 h-4" />}>
-              My Assignments
-            </PillLink>
-          }
         />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

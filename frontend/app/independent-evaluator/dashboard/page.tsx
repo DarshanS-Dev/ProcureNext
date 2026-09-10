@@ -16,7 +16,6 @@ import {
   HeroCard,
   IconBadge,
   PageHeader,
-  PillLink,
   ScopeNote,
   StatPill,
   Stepper,
@@ -55,11 +54,6 @@ export default function IndependentEvaluatorDashboardPage() {
           line2="and"
           accentGlyph={<Microscope className="w-5 h-5" />}
           line2Tail="Evidence"
-          action={
-            <PillLink href="/independent-evaluator/applications" icon={<Search className="w-4 h-4" />}>
-              Pending Reviews
-            </PillLink>
-          }
         />
 
         {/* Addition 1 — the verification pipeline, as the shared stepper. */}

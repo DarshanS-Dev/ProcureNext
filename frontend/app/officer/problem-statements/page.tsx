@@ -19,7 +19,6 @@ import {
 import {
   Card,
   PageHeader,
-  PillLink,
   StatPill,
 } from '@/components/shared/design-system';
 import { WeeklyActivityChart, bucketByWeek } from '@/components/shared/domain/Insights';
@@ -28,7 +27,7 @@ import { api } from '@/lib/api/client';
 import { useMutation, useQuery } from '@/lib/hooks/useApi';
 import { useSession } from '@/lib/auth/session';
 import { PSStatusEnum } from '@/lib/types/api';
-import { ArrowRight, BarChart3, FileText, PlusCircle } from 'lucide-react';
+import { ArrowRight, BarChart3, FileText} from 'lucide-react';
 
 export default function OfficerProblemStatementsPage() {
   const session = useSession();
@@ -52,11 +51,6 @@ export default function OfficerProblemStatementsPage() {
           glyph={<FileText className="w-5 h-5 text-[#18181B]" />}
           line1Tail="Statements"
           subtitle="Draft, publish and close the challenges startups bid against."
-          action={
-            <PillLink href="/officer/problem-statements/new" icon={<PlusCircle className="w-4 h-4" />}>
-              New Problem Statement
-            </PillLink>
-          }
         />
 
         {/* Addition 1 — lifecycle lanes: draft → published → closed, click to filter. */}

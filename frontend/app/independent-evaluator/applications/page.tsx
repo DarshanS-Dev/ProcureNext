@@ -20,12 +20,7 @@ import {
 } from '@/components/shared/DesignSystem';
 import {
   Card,
-  DonutRing,
-  DotTrack,
-  HeroCard,
   PageHeader as Header,
-  PillLink,
-  ScopeNote,
   StatPill,
   Stepper,
 } from '@/components/shared/design-system';

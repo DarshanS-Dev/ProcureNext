@@ -18,15 +18,9 @@ import React from 'react';
 import { AppLayout } from '@/components/shared/AppLayout';
 import { AlertStrip, DataCard, DocLinkButton } from '@/components/shared/DesignSystem';
 import {
-  Card,
-  DonutRing,
-  DotTrack,
   HeroCard,
   PageHeader as Header,
-  PillLink,
-  ScopeNote,
   StatPill,
-  Stepper,
 } from '@/components/shared/design-system';
 import { ScrollText } from 'lucide-react';
 import { PanelHeading } from '@/components/panels/ApplicationPanels';

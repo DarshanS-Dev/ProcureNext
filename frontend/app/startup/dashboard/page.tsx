@@ -10,7 +10,6 @@
  */
 
 import React from 'react';
-import { useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/shared/AppLayout';
 import { AlertStrip } from '@/components/shared/DesignSystem';
 import { LoadingBlock } from '@/components/shared/States';
@@ -26,15 +25,11 @@ import {
 import {
   ActionCard,
   PageHeader,
-  PillLink,
-  PillTabs,
-  ROLE_NAV,
   TileLink,
 } from '@/components/shared/design-system';
 import {
   ClipboardList,
   Mail,
-  Plus,
   Search,
   Sliders,
   Sparkles,
@@ -42,7 +37,6 @@ import {
 } from 'lucide-react';
 
 export default function StartupDashboardPage() {
-  const router = useRouter();
   const session = useSession();
 
   const profile = useQuery(() => api.getMyProfile(), []);
@@ -58,8 +52,6 @@ export default function StartupDashboardPage() {
     (a) => !['completed', 'not_selected'].includes(a.status),
   ).length;
 
-  const tabs = ROLE_NAV.startup.items.map((item) => ({ id: item.href, label: item.label }));
-
   return (
     <AppLayout allow="startup">
       <div className="space-y-6 pb-12">
@@ -70,17 +62,6 @@ export default function StartupDashboardPage() {
           line2="and"
           accentGlyph={<Sparkles className="w-5 h-5" />}
           line2Tail="Workflows"
-          action={
-            <PillLink href="/startup/discover" icon={<Plus className="w-4 h-4" />}>
-              Explore Opportunities
-            </PillLink>
-          }
-        />
-
-        <PillTabs
-          tabs={tabs}
-          active="/startup/dashboard"
-          onChange={(href) => router.push(href)}
         />
 
         {!session && <LoadingBlock label="Loading overview..." rows={2} />}

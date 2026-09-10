@@ -9,7 +9,7 @@
  * backend uses for `converted` on the officer's side.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { AppLayout } from '@/components/shared/AppLayout';
 import { LoadingBlock, ApiErrorState, fmtDateTime, humanize } from '@/components/shared/States';
 import { api, orNull } from '@/lib/api/client';
@@ -25,11 +25,13 @@ import {
   ProgressCapsule,
   StatPill,
 } from '@/components/shared/design-system';
-import { ArrowRight, Clock, Mail, Search, Sparkles } from 'lucide-react';
+import { ArrowRight, Clock, Mail, Sparkles } from 'lucide-react';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export default function StartupInvitesPage() {
+  // Read once per mount: calling the clock during render is impure.
+  const [now] = useState(() => Date.now());
   const session = useSession();
   const invitesQuery = useQuery(() => api.getMyInvites(), []);
   const psQuery = useQuery(() => api.getProblemStatements(), []);
@@ -55,11 +57,6 @@ export default function StartupInvitesPage() {
           glyph={<Mail className="w-5 h-5 text-[#18181B]" />}
           line1Tail="Invites"
           subtitle="Problem statements an officer invited you to bid on."
-          action={
-            <PillLink href="/startup/discover" icon={<Search className="w-4 h-4" />}>
-              Explore Opportunities
-            </PillLink>
-          }
         />
 
         {invitesQuery.loading && <LoadingBlock label="Loading invites…" />}
@@ -107,7 +104,7 @@ export default function StartupInvitesPage() {
                 const applied = appliedPs.has(inv.problem_statement_id);
                 const ageDays = Math.max(
                   0,
-                  Math.floor((Date.now() - new Date(inv.invited_at).getTime()) / DAY_MS),
+                  Math.floor((now - new Date(inv.invited_at).getTime()) / DAY_MS),
                 );
                 const ageRatio = Math.min(1, ageDays / 30);
 

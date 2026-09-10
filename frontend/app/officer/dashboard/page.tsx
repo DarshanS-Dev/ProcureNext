@@ -18,7 +18,6 @@ import { ApplicationRead } from '@/lib/types/api';
 import {
   Card,
   PageHeader,
-  PillLink,
   StatPill,
 } from '@/components/shared/design-system';
 import {
@@ -73,11 +72,6 @@ export default function OfficerDashboardPage() {
           line2="Portal and"
           accentGlyph={<Send className="w-5 h-5" />}
           line2Tail="Pilots"
-          action={
-            <PillLink href="/officer/problem-statements/new" icon={<Plus className="w-4 h-4" />}>
-              New Problem Statement
-            </PillLink>
-          }
         />
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
