@@ -102,6 +102,8 @@ def _assert_can_view_application(db: Session, current_user: User, application: A
     if current_user.role == RoleEnum.evaluator:
         # judgment call #1: role-level only, same known gap as scoring.py
         return
+    if current_user.role == RoleEnum.independent_evaluator:
+        return
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not permitted to view this application")
 
 
