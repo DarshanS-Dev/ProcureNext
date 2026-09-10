@@ -120,11 +120,13 @@ export function getToken(): string | null {
 
 export function setToken(token: string) {
   if (typeof window === 'undefined') return;
+  invalidateApiCache();
   window.localStorage.setItem(TOKEN_KEY, token);
 }
 
 export function clearToken() {
   if (typeof window === 'undefined') return;
+  invalidateApiCache();
   window.localStorage.removeItem(TOKEN_KEY);
 }
 
@@ -160,7 +162,68 @@ interface RequestOptions {
   anonymous?: boolean;
 }
 
+// ── Client-side GET cache ─────────────────────────────────────
+//
+// Pages used to refetch everything on every mount: the problem-statement list
+// alone was requested from 13 places, the nav bell refetched on every route,
+// and list pages fan out one request per row. The backend is fixed, so the
+// saving has to come from not asking twice:
+//   - identical GETs in flight at the same time share one network request;
+//   - a successful GET is reused for CACHE_TTL_MS;
+//   - any write (POST/PATCH/PUT/DELETE) drops the whole cache, so a page never
+//     shows data older than the user's own last change.
+// Errors are never cached, so Retry always goes back to the server.
+
+const CACHE_TTL_MS = 30_000;
+const responseCache = new Map<string, { at: number; data: unknown }>();
+const inFlight = new Map<string, Promise<unknown>>();
+// Bumped on every invalidation, so a GET that started before a write cannot
+// land its now-stale response in the cache after the write cleared it.
+let cacheGeneration = 0;
+
+/** Forget every cached response — on writes, sign-in and sign-out. */
+export function invalidateApiCache() {
+  cacheGeneration += 1;
+  responseCache.clear();
+  inFlight.clear();
+}
+
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const method = options.method ?? 'GET';
+
+  if (method !== 'GET') {
+    try {
+      return await send<T>(path, options);
+    } finally {
+      invalidateApiCache();
+    }
+  }
+
+  // Keyed on the token too, so two accounts in one tab never share rows.
+  const key = `${getToken() ?? ''}|${path}|${JSON.stringify(options.query ?? {})}`;
+
+  const hit = responseCache.get(key);
+  if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.data as T;
+
+  const pending = inFlight.get(key);
+  if (pending) return pending as Promise<T>;
+
+  const generation = cacheGeneration;
+  const promise = send<T>(path, options)
+    .then((data) => {
+      if (generation === cacheGeneration) {
+        responseCache.set(key, { at: Date.now(), data });
+      }
+      return data;
+    })
+    .finally(() => {
+      if (inFlight.get(key) === promise) inFlight.delete(key);
+    });
+  inFlight.set(key, promise);
+  return promise;
+}
+
+async function send<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { method = 'GET', body, query, anonymous } = options;
 
   let url = `${API_BASE}${path}`;
