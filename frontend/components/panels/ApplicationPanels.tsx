@@ -574,7 +574,7 @@ export const QCBSPanel: React.FC<{ appId: number }> = ({ appId }) => {
           ].map((cell) => (
             <div
               key={cell.label}
-              className="p-4 rounded-lg text-center"
+              className="p-4 rounded-2xl text-center"
               style={{
                 backgroundColor: cell.emphasis ? '#EAF7ED' : '#F4F4EF',
                 border: `1px solid ${cell.emphasis ? '#B8E6C4' : '#E5E5E0'}`,

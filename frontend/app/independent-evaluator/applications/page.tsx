@@ -17,10 +17,21 @@ import {
   DataCard,
   DocButton,
   DocInput,
-  PageHeader,
 } from '@/components/shared/DesignSystem';
+import {
+  Card,
+  DonutRing,
+  DotTrack,
+  HeroCard,
+  PageHeader as Header,
+  PillLink,
+  ScopeNote,
+  StatPill,
+  Stepper,
+} from '@/components/shared/design-system';
+
 import { AppLayout } from '@/components/shared/AppLayout';
-import { ArrowRight, Clock } from 'lucide-react';
+import { ArrowRight, Clock, Microscope } from 'lucide-react';
 
 const RECENT_KEY = 'procurenext.ie.recent';
 
@@ -52,16 +63,22 @@ export default function IndependentEvaluatorApplicationsPage() {
   return (
     <AppLayout allow="independent_evaluator">
       <div className="space-y-6 max-w-3xl">
-        <PageHeader
-          title="Verification Work"
+        <Header
+          line1="Verification"
+          glyph={<Microscope className="w-5 h-5 text-[#18181B]" />}
+          line1Tail="Work"
           subtitle="Open the application you have been asked to verify."
-          phase="Layer 5 · Execution"
-          role="independent-evaluator"
-          breadcrumb={[
-            { label: 'Independent evaluator', href: '/independent-evaluator/dashboard' },
-            { label: 'Applications' },
-          ]}
         />
+
+        <Card label="What opens" aside={<StatPill>per application</StatPill>}>
+          <Stepper
+            steps={[
+              { label: 'Sandbox trial', state: 'application', tone: 'active' },
+              { label: 'Milestones', state: 'contract', tone: 'pending' },
+              { label: 'KPI verdicts', state: 'contract', tone: 'pending' },
+            ]}
+          />
+        </Card>
 
         <DataCard>
           <form
@@ -115,12 +132,7 @@ export default function IndependentEvaluatorApplicationsPage() {
                   <button
                     key={id}
                     onClick={() => open(id)}
-                    className="px-3 py-1.5 rounded-lg text-[11px] font-bold cursor-pointer transition-colors"
-                    style={{
-                      backgroundColor: '#FBEFE6',
-                      color: '#D2691E',
-                      border: '1px solid #F0CDB5',
-                    }}
+                    className="px-4 py-2 rounded-full text-[11px] font-bold cursor-pointer transition-colors bg-white border border-[#E5E5E0] text-[#18181B] hover:bg-[#D7FD44] hover:border-[#C3EB30]"
                   >
                     Application #{id}
                   </button>

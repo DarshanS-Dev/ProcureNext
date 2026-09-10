@@ -22,15 +22,26 @@ import {
   DataCard,
   DocButton,
   DocInput,
-  PageHeader,
   StatusBadge,
 } from '@/components/shared/DesignSystem';
+import {
+  Card,
+  DonutRing,
+  DotTrack,
+  HeroCard,
+  PageHeader as Header,
+  PillLink,
+  ScopeNote,
+  StatPill,
+  Stepper,
+} from '@/components/shared/design-system';
+
 import { ApiErrorState, EmptyState, LoadingBlock, fmtDate, humanize } from '@/components/shared/States';
 import { api } from '@/lib/api/client';
 import { useQuery } from '@/lib/hooks/useApi';
 import { useSession } from '@/lib/auth/session';
 import { ProblemStatementRead } from '@/lib/types/api';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ListChecks } from 'lucide-react';
 
 export default function EvaluatorAssignedPage() {
   const session = useSession();
@@ -59,12 +70,11 @@ export default function EvaluatorAssignedPage() {
   return (
     <AppLayout allow="evaluator">
       <div className="space-y-6">
-        <PageHeader
-          title="Assigned Work"
+        <Header
+          line1="Assigned"
+          glyph={<ListChecks className="w-5 h-5 text-[#18181B]" />}
+          line1Tail="Work"
           subtitle="Problem statements an admin has put you on the panel for."
-          phase="Layer 4 · Evaluation"
-          role="evaluator"
-          breadcrumb={[{ label: 'Evaluator', href: '/evaluator/dashboard' }, { label: 'Assigned' }]}
         />
 
         <DataCard>
@@ -132,14 +142,21 @@ export default function EvaluatorAssignedPage() {
                   {humanize(ps.category)} · created {fmtDate(ps.created_at)}
                 </p>
               </div>
+              {/* Where this panel's problem statement is in its lifecycle. */}
+              <DotTrack
+                dots={[
+                  { label: 'Draft', done: true },
+                  { label: 'Published', done: ps.status !== 'draft' },
+                  { label: 'Closed', done: ps.status === 'closed' },
+                ]}
+              />
               {ps.description && (
                 <p className="text-xs text-[#6B7280] leading-relaxed line-clamp-3">
                   {ps.description}
                 </p>
               )}
               <div
-                className="p-2.5 rounded-lg text-[11px] text-[#6B7280]"
-                style={{ backgroundColor: '#F4F4EF', border: '1px solid #E5E5E0' }}
+                className="p-3 rounded-2xl text-[11px] text-[#18181B] bg-[#D7FD44]/40"
               >
                 <span className="font-bold">Success condition:</span>{' '}
                 {ps.success_condition || 'Not stated'}

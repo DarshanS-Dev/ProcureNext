@@ -2,13 +2,24 @@
 
 import React from 'react';
 import { AppLayout } from '@/components/shared/AppLayout';
-import { AlertStrip, PageHeader } from '@/components/shared/DesignSystem';
-import { PillLink } from '@/components/shared/design-system';
+import { AlertStrip } from '@/components/shared/DesignSystem';
+import {
+  Card,
+  DonutRing,
+  DotTrack,
+  HeroCard,
+  PageHeader as Header,
+  PillLink,
+  ScopeNote,
+  StatPill,
+  Stepper,
+} from '@/components/shared/design-system';
+
 import { QuickLink, Stat } from '@/components/shared/Dashboard';
 import { api } from '@/lib/api/client';
 import { useQuery } from '@/lib/hooks/useApi';
 import { PlatformRules } from '@/components/admin/PlatformRules';
-import { ShieldCheck, Users } from 'lucide-react';
+import { PieChart, ShieldCheck, Sliders, Users } from 'lucide-react';
 
 export default function AdminDashboardPage() {
   const users = useQuery(() => api.getUsers(), []);
@@ -20,14 +31,13 @@ export default function AdminDashboardPage() {
   return (
     <AppLayout allow="admin">
       <div className="space-y-6">
-        <PageHeader
-          title="Admin Overview"
+        <Header
+          line1="Admin"
+          glyph={<Sliders className="w-5 h-5 text-[#18181B]" />}
+          line1Tail="Console"
           subtitle="Accounts, compliance verification, evaluator panels and audit records."
-          actions={
-            <PillLink
-              href="/admin/startups/compliance"
-              icon={<ShieldCheck className="w-4 h-4" />}
-            >
+          action={
+            <PillLink href="/admin/startups/compliance" icon={<ShieldCheck className="w-4 h-4" />}>
               Compliance Queue
             </PillLink>
           }
@@ -82,6 +92,23 @@ export default function AdminDashboardPage() {
             href="/admin/evaluators"
           />
         </div>
+
+        {/* Accounts by role — real counts from GET /admin/users. */}
+        <Card
+          icon={<PieChart className="w-4 h-4" />}
+          label="Accounts by Role"
+          aside={<StatPill>{users.data?.length ?? 0} total</StatPill>}
+          className="max-w-md"
+        >
+          <DonutRing
+            unit="Accounts"
+            emptyLabel={users.loading ? 'Loading…' : 'No accounts yet.'}
+            slices={(['startup', 'officer', 'evaluator', 'independent_evaluator', 'admin'] as const).map((r) => ({
+              label: r.replace('_', ' ').replace(/^./, (c) => c.toUpperCase()),
+              count: (users.data ?? []).filter((u) => u.role === r).length,
+            }))}
+          />
+        </Card>
 
         {/* The rules that govern every decision on the platform, read-only —
             see the component for why none of it is editable. */}

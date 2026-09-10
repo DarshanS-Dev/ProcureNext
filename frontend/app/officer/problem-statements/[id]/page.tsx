@@ -558,7 +558,7 @@ const SuggestionRow: React.FC<{ label: string; value: string; onUse: () => void 
   onUse,
 }) => (
   <div
-    className="p-3 rounded-lg flex items-start justify-between gap-3"
+    className="p-3 rounded-2xl flex items-start justify-between gap-3"
     style={{ backgroundColor: '#F4F4EF', border: '1px solid #E5E5E0' }}
   >
     <div className="min-w-0">

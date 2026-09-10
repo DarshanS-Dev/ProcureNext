@@ -3,27 +3,23 @@
 /**
  * POST /admin/applications/{id}/compliance-record   — compile a new record
  * GET  /admin/applications/{id}/compliance-records  — every record compiled
- * GET  /admin/compliance-records/{record_id}        — one record in full
  *
- * The snapshot is a free-form JSON blob spanning all four layers, so it is
- * rendered generically: nested objects expand, primitives render as rows. That
- * way the page cannot silently drop a section the backend later adds.
+ * Records are immutable snapshots, so they are drawn as dots on a timeline —
+ * each dot is one `generated_at`. The selected snapshot renders generically
+ * (nested objects expand, primitives render as rows) so a section the backend
+ * later adds is never silently dropped.
+ *
+ * "Audit view" is a presentation mode of this same page for external audit
+ * (CAG) review: write actions hide and the snapshot gets a carbon-copy
+ * treatment. It is not a separate role — access still runs through Admin.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { AppLayout } from '@/components/shared/AppLayout';
-import {
-  AlertStrip,
-  DataCard,
-  DocButton,
-  PageHeader,
-  StatusBadge,
-} from '@/components/shared/DesignSystem';
-import { DecisionReadinessPanel, PanelHeading } from '@/components/panels/ApplicationPanels';
+import { DecisionReadinessPanel } from '@/components/panels/ApplicationPanels';
 import {
   ApiErrorState,
-  EmptyState,
   LoadingBlock,
   fmtDateTime,
   humanize,
@@ -31,7 +27,16 @@ import {
 import { api } from '@/lib/api/client';
 import { useMutation, useQuery } from '@/lib/hooks/useApi';
 import { ComplianceRecordRead } from '@/lib/types/api';
-import { FileCheck2 } from 'lucide-react';
+import {
+  Card,
+  EmptyState,
+  HeroCard,
+  PageHeader,
+  PillButton,
+  ScopeNote,
+  StatPill,
+} from '@/components/shared/design-system';
+import { Eye, FileCheck2, History, Stamp } from 'lucide-react';
 
 /** Renders arbitrary snapshot JSON without assuming its shape. */
 const SnapshotNode: React.FC<{ label: string; value: unknown; depth?: number }> = ({
@@ -39,18 +44,16 @@ const SnapshotNode: React.FC<{ label: string; value: unknown; depth?: number }> 
   value,
   depth = 0,
 }) => {
-  if (value === null || value === undefined) {
-    return <Leaf label={label} value="—" depth={depth} />;
-  }
+  if (value === null || value === undefined) return <Leaf label={label} value="—" />;
 
   if (Array.isArray(value)) {
-    if (value.length === 0) return <Leaf label={label} value="(empty)" depth={depth} />;
+    if (value.length === 0) return <Leaf label={label} value="(empty)" />;
     return (
-      <div style={{ marginLeft: depth * 12 }} className="py-1">
-        <div className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF]">
+      <div className="py-1">
+        <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
           {humanize(label)} ({value.length})
         </div>
-        <div className="mt-1 space-y-0.5">
+        <div className="mt-1 pl-3 space-y-0.5 border-l-2 border-[#F0F0EA]">
           {value.map((item, i) => (
             <SnapshotNode key={i} label={`#${i + 1}`} value={item} depth={depth + 1} />
           ))}
@@ -60,37 +63,26 @@ const SnapshotNode: React.FC<{ label: string; value: unknown; depth?: number }> 
   }
 
   if (typeof value === 'object') {
-    const entries = Object.entries(value as Record<string, unknown>);
     return (
-      <div style={{ marginLeft: depth * 12 }} className="py-1">
-        <div className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF]">
+      <div className="py-1">
+        <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
           {humanize(label)}
         </div>
-        <div
-          className="mt-1 pl-3 space-y-0.5"
-          style={{ borderLeft: '2px solid #F0F0EA' }}
-        >
-          {entries.map(([k, v]) => (
-            <SnapshotNode key={k} label={k} value={v} depth={depth} />
+        <div className="mt-1 pl-3 space-y-0.5 border-l-2 border-[#F0F0EA]">
+          {Object.entries(value as Record<string, unknown>).map(([k, v]) => (
+            <SnapshotNode key={k} label={k} value={v} depth={depth + 1} />
           ))}
         </div>
       </div>
     );
   }
 
-  return <Leaf label={label} value={String(value)} depth={depth} />;
+  return <Leaf label={label} value={String(value)} />;
 };
 
-const Leaf: React.FC<{ label: string; value: string; depth: number }> = ({
-  label,
-  value,
-  depth,
-}) => (
-  <div
-    className="flex gap-3 py-1 border-b border-[#F5F1E8] last:border-b-0"
-    style={{ marginLeft: depth * 12 }}
-  >
-    <span className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF] w-44 shrink-0 pt-0.5">
+const Leaf: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+  <div className="flex gap-3 py-1 border-b border-[#F4F4EF] last:border-b-0">
+    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 w-44 shrink-0 pt-0.5">
       {humanize(label)}
     </span>
     <span className="text-xs text-[#18181B] font-medium flex-1 break-words">{value}</span>
@@ -105,11 +97,19 @@ export default function ComplianceRecordPage() {
     enabled: Number.isFinite(appId),
   });
   const generate = useMutation();
-  const [expanded, setExpanded] = useState<number | null>(null);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [auditView, setAuditView] = useState(false);
 
+  // Oldest → newest along the timeline.
   const list: ComplianceRecordRead[] = (records.data ?? [])
     .slice()
-    .sort((a, b) => b.id - a.id);
+    .sort((a, b) => new Date(a.generated_at).getTime() - new Date(b.generated_at).getTime());
+
+  useEffect(() => {
+    if (selected === null && list.length > 0) setSelected(list[list.length - 1].id);
+  }, [list, selected]);
+
+  const current = list.find((r) => r.id === selected) ?? null;
 
   if (!Number.isFinite(appId)) {
     return (
@@ -121,113 +121,162 @@ export default function ComplianceRecordPage() {
 
   return (
     <AppLayout allow="admin">
-      <div className="space-y-6">
+      <div className={`space-y-6 pb-12 ${auditView ? 'grayscale-[0.6]' : ''}`}>
         <PageHeader
-          title="Compliance Record"
-          subtitle={`Audit-grade snapshot of everything on record for application #${appId}.`}
-          phase="Compliance record"
-          role="admin"
-          breadcrumb={[
-            { label: 'Admin', href: '/admin/dashboard' },
-            { label: 'Applications', href: '/admin/applications' },
-            { label: `#${appId}` },
-          ]}
+          line1="Compliance"
+          glyph={<Stamp className="w-5 h-5 text-[#18181B]" />}
+          line1Tail="Record"
+          subtitle={`Audit-grade snapshots of everything on record for application #${appId}.`}
+          action={
+            <PillButton
+              variant={auditView ? 'ink' : 'outline'}
+              icon={<Eye className="w-4 h-4" />}
+              onClick={() => setAuditView((v) => !v)}
+            >
+              {auditView ? 'Exit audit view' : 'Audit view'}
+            </PillButton>
+          }
         />
 
-        <DecisionReadinessPanel appId={appId} canViewCOI={true} />
-
-        <DataCard>
-          <PanelHeading
-            title="Compile a new record"
-            endpoint={`POST /admin/applications/${appId}/compliance-record`}
+        {auditView && (
+          <HeroCard
+            icon={<Eye className="w-4 h-4" />}
+            label="External audit view"
+            aside={<StatPill tone="white">Read only</StatPill>}
+            title="Carbon copy — no actions available"
+            body="This is how the record reads to an external auditor. Write actions are hidden; nothing here can be changed."
           />
-          <p className="text-xs text-[#6B7280] mb-3">
-            Compiling captures the state of this application right now — eligibility,
-            checklist, scores, QCBS, risk, containment and the pilot trail. Existing
-            records are never modified, so compiling again adds a new one.
-          </p>
+        )}
 
-          {generate.error && (
-            <AlertStrip type="error" title="Not compiled" message={generate.error.detail} />
-          )}
-          {generate.success && <AlertStrip type="success" message={generate.success} />}
-
-          <DocButton
-            size="sm"
-            variant="primary"
-            role="admin"
-            loading={generate.pending}
-            icon={<FileCheck2 className="w-3 h-3" />}
-            onClick={() =>
-              generate.run(() => api.generateComplianceRecord(appId), {
-                successMessage: 'Compliance record compiled.',
-                onSuccess: (rec) => {
-                  setExpanded(rec.id);
-                  records.refetch();
-                },
-              })
-            }
-          >
-            Compile record
-          </DocButton>
-        </DataCard>
+        {!auditView && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <DecisionReadinessPanel appId={appId} canViewCOI={true} />
+            </div>
+            <HeroCard
+              icon={<FileCheck2 className="w-4 h-4" />}
+              label="Compile"
+              title="Capture the current state"
+              body="Eligibility, checklist, scores, QCBS, risk, containment and the pilot trail. Records are never modified — compiling again adds a new dot to the timeline."
+              action={
+                <div className="space-y-2">
+                  {generate.error && (
+                    <p className="text-[11px] text-[#FCA5A5]">{generate.error.detail}</p>
+                  )}
+                  {generate.success && (
+                    <p className="text-[11px] text-[#D7FD44]">{generate.success}</p>
+                  )}
+                  <button
+                    disabled={generate.pending}
+                    onClick={() =>
+                      generate.run(() => api.generateComplianceRecord(appId), {
+                        successMessage: 'Compliance record compiled.',
+                        onSuccess: (rec) => {
+                          setSelected(rec.id);
+                          records.refetch();
+                        },
+                      })
+                    }
+                    className="w-full bg-white hover:bg-[#D7FD44] text-[#121212] font-bold text-xs py-2.5 px-4 rounded-full transition-colors cursor-pointer disabled:opacity-40"
+                  >
+                    {generate.pending ? 'Compiling…' : 'Compile record'}
+                  </button>
+                </div>
+              }
+            />
+          </div>
+        )}
 
         {records.loading && <LoadingBlock label="Loading records…" />}
-        {records.error && (
-          <ApiErrorState error={records.error} onRetry={records.refetch} />
-        )}
+        {records.error && <ApiErrorState error={records.error} onRetry={records.refetch} />}
 
         {records.data && list.length === 0 && (
           <EmptyState
+            icon={<History className="w-5 h-5" />}
             title="No records compiled yet"
-            hint="Compile one above to capture the current state of this application."
+            hint="Compile one to capture the current state of this application."
           />
         )}
 
-        <div className="space-y-4">
-          {list.map((record) => {
-            const isOpen = expanded === record.id;
-            return (
-              <DataCard key={record.id}>
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-sm font-bold text-[#18181B]">
-                      Record #{record.id}
-                    </div>
-                    <div className="text-[11px] text-[#6B7280]">
-                      Compiled {fmtDateTime(record.generated_at)} by user #{record.generated_by} ·
-                      PS #{record.problem_statement_id}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <StatusBadge status="verified" label="Sealed" />
-                    <DocButton
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setExpanded(isOpen ? null : record.id)}
+        {/* Addition 1 — every immutable snapshot as a dot on a timeline. */}
+        {list.length > 0 && (
+          <Card
+            icon={<History className="w-4 h-4" />}
+            label="Snapshot Timeline"
+            aside={<StatPill>{list.length} sealed</StatPill>}
+          >
+            <div className="overflow-x-auto pb-2">
+              <div className="relative flex items-start gap-0 min-w-max pt-2">
+                <div className="absolute left-3 right-3 top-[18px] h-0.5 bg-[#E5E5E0]" />
+                {list.map((rec) => {
+                  const isSel = rec.id === selected;
+                  return (
+                    <button
+                      key={rec.id}
+                      onClick={() => setSelected(rec.id)}
+                      className="relative flex flex-col items-center gap-2 px-5 cursor-pointer group"
                     >
-                      {isOpen ? 'Collapse' : 'Expand'}
-                    </DocButton>
-                  </div>
-                </div>
+                      <span
+                        className={`w-5 h-5 rounded-full border-2 transition-all ${
+                          isSel
+                            ? 'bg-[#D7FD44] border-[#18181B] scale-125'
+                            : 'bg-white border-[#18181B] group-hover:bg-[#F3F3EE]'
+                        }`}
+                      />
+                      <span className={`text-[10px] font-bold ${isSel ? 'text-[#18181B]' : 'text-gray-400'}`}>
+                        #{rec.id}
+                      </span>
+                      <span className="text-[9px] text-gray-400 whitespace-nowrap">
+                        {fmtDateTime(rec.generated_at)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </Card>
+        )}
 
-                {isOpen && (
-                  <div className="mt-4 pt-4 border-t border-[#F0F0EA]">
-                    {Object.keys(record.snapshot ?? {}).length === 0 ? (
-                      <p className="text-xs text-[#6B7280]">The snapshot is empty.</p>
-                    ) : (
-                      <div className="space-y-1">
-                        {Object.entries(record.snapshot).map(([k, v]) => (
-                          <SnapshotNode key={k} label={k} value={v} />
-                        ))}
-                      </div>
-                    )}
+        {/* Addition 2 — the selected snapshot, one card per top-level section. */}
+        {current && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h2 className="text-lg font-black text-[#18181B] tracking-tight">
+                Record #{current.id}
+              </h2>
+              <div className="flex items-center gap-2">
+                <StatPill tone="ghost">PS #{current.problem_statement_id}</StatPill>
+                <StatPill tone="ghost">by user #{current.generated_by}</StatPill>
+                <StatPill tone={auditView ? 'ink' : 'accent'}>Sealed</StatPill>
+              </div>
+            </div>
+
+            {Object.keys(current.snapshot ?? {}).length === 0 ? (
+              <ScopeNote>The snapshot is empty.</ScopeNote>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {Object.entries(current.snapshot).map(([section, value]) => (
+                  <div
+                    key={section}
+                    className={`bg-white rounded-3xl border shadow-sm p-5 ${
+                      auditView ? 'border-dashed border-[#9CA3AF]' : 'border-[#E5E5E0]'
+                    }`}
+                  >
+                    <div className="text-xs font-bold uppercase tracking-wider text-[#18181B] mb-2">
+                      {humanize(section)}
+                    </div>
+                    <SnapshotNode label="" value={value} />
                   </div>
-                )}
-              </DataCard>
-            );
-          })}
-        </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        <ScopeNote>
+          Generated by Admin, viewed via the Admin console. External audit access uses
+          this same page — there is no separate auditor login.
+        </ScopeNote>
       </div>
     </AppLayout>
   );

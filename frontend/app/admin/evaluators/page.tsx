@@ -20,7 +20,6 @@ import {
   DocButton,
   DocSelect,
   FormField,
-  PageHeader,
   SectionDivider,
   StatusBadge,
 } from '@/components/shared/DesignSystem';
@@ -34,7 +33,13 @@ import {
 } from '@/components/shared/States';
 import { api } from '@/lib/api/client';
 import { useMutation, useQuery } from '@/lib/hooks/useApi';
-import { UserPlus2 } from 'lucide-react';
+import { Scale, UserPlus2, Users } from 'lucide-react';
+import {
+  Card,
+  PageHeader,
+  ProgressCapsule,
+  StatPill,
+} from '@/components/shared/design-system';
 
 export default function AdminEvaluatorsPage() {
   const psQuery = useQuery(() => api.getProblemStatements(), []);
@@ -74,11 +79,10 @@ export default function AdminEvaluatorsPage() {
     <AppLayout allow="admin">
       <div className="space-y-6">
         <PageHeader
-          title="Evaluator Panels"
+          line1="Evaluator"
+          glyph={<Scale className="w-5 h-5 text-[#18181B]" />}
+          line1Tail="Panels"
           subtitle="Assign evaluators to a problem statement, and handle recusals by replacement."
-          phase="Layer 4 · Evaluation"
-          role="admin"
-          breadcrumb={[{ label: 'Admin', href: '/admin/dashboard' }, { label: 'Evaluators' }]}
         />
 
         {psQuery.loading && <LoadingBlock label="Loading problem statements…" rows={2} />}
@@ -109,6 +113,41 @@ export default function AdminEvaluatorsPage() {
             title="Pick a problem statement"
             hint="Panels are per problem statement. Choose one above to see and change its evaluators."
           />
+        )}
+
+        {selectedPsId && assignments.data && (
+          <Card
+            icon={<Users className="w-4 h-4" />}
+            label="Panel Composition"
+            aside={<StatPill>{assignments.data.length} of {evaluatorUsers.length} evaluators</StatPill>}
+          >
+            {/* Seats: one circle per evaluator in the pool, filled if on this panel. */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {evaluatorUsers.map((u) => {
+                const seated = assignedIds.has(u.id);
+                return (
+                  <span
+                    key={u.id}
+                    title={`${u.name ?? u.email} — ${seated ? 'on panel' : 'available'}`}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center text-[11px] font-black border-2 ${
+                      seated
+                        ? 'bg-[#D7FD44] border-[#18181B] text-[#18181B]'
+                        : 'bg-white border-dashed border-[#D4D4CE] text-gray-400'
+                    }`}
+                  >
+                    {(u.name ?? u.email ?? '?').slice(0, 2).toUpperCase()}
+                  </span>
+                );
+              })}
+            </div>
+            <ProgressCapsule
+              total={Math.max(1, evaluatorUsers.length)}
+              filled={assignments.data.length}
+            />
+            <p className="text-[10px] text-gray-400 mt-2">
+              Share of the evaluator pool seated on this problem statement.
+            </p>
+          </Card>
         )}
 
         {selectedPsId && (

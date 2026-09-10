@@ -10,15 +10,14 @@ import { AppLayout } from '@/components/shared/AppLayout';
 import {
   DocLinkButton,
   DocumentForm,
-  PageHeader,
   StatusBadge,
 } from '@/components/shared/DesignSystem';
 import { ApiErrorState, EmptyState, LoadingBlock, fmtDateTime, humanize } from '@/components/shared/States';
 import { api } from '@/lib/api/client';
 import { useQuery } from '@/lib/hooks/useApi';
 import { useSession } from '@/lib/auth/session';
-import { ArrowRight, PieChart } from 'lucide-react';
-import { Card, StatPill } from '@/components/shared/design-system';
+import { ArrowRight, ClipboardList, PieChart, Search } from 'lucide-react';
+import { Card, PageHeader, PillLink, StatPill } from '@/components/shared/design-system';
 import {
   ApplicationStatusDonut,
   ApplicationStatusStepper,
@@ -40,15 +39,14 @@ export default function StartupApplicationsPage() {
     <AppLayout allow="startup">
       <div className="space-y-6 max-w-5xl">
         <PageHeader
-          title="My Applications"
+          line1="My"
+          glyph={<ClipboardList className="w-5 h-5 text-[#18181B]" />}
+          line1Tail="Applications"
           subtitle="Every proposal you have submitted, and where each one sits in the pipeline."
-          phase="Layer 3 · Application"
-          role="startup"
-          breadcrumb={[{ label: 'Startup', href: '/startup/dashboard' }, { label: 'Applications' }]}
-          actions={
-            <DocLinkButton href="/startup/discover" role="startup" size="sm">
-              Find something to apply to
-            </DocLinkButton>
+          action={
+            <PillLink href="/startup/discover" icon={<Search className="w-4 h-4" />}>
+              Explore Opportunities
+            </PillLink>
           }
         />
 

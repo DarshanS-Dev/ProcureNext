@@ -15,14 +15,20 @@ import {
   DataCard,
   DocButton,
   DocSelect,
-  PageHeader,
   StatusBadge,
 } from '@/components/shared/DesignSystem';
+import {
+  DotTrack,
+  HeroCard,
+  PageHeader,
+  ProgressCapsule,
+  StatPill,
+} from '@/components/shared/design-system';
 import { ApiErrorState, EmptyState, LoadingBlock, humanize } from '@/components/shared/States';
 import { api } from '@/lib/api/client';
 import { useMutation, useQuery } from '@/lib/hooks/useApi';
 import { DpiitStatusEnum, StartupProfileRead } from '@/lib/types/api';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, Sliders } from 'lucide-react';
 
 interface Draft {
   dpiit_status: DpiitStatusEnum;
@@ -51,12 +57,23 @@ export default function AdminComplianceQueuePage() {
     <AppLayout allow="admin">
       <div className="space-y-6">
         <PageHeader
-          title="Compliance Queue"
+          line1="Compliance"
+          glyph={<Sliders className="w-5 h-5 text-[#18181B]" />}
+          line1Tail="Queue"
           subtitle="Startups awaiting verification. Until this is done they cannot submit an application."
-          phase="Layer 1 · Actors"
-          role="admin"
-          breadcrumb={[{ label: 'Admin', href: '/admin/dashboard' }, { label: 'Compliance' }]}
         />
+
+        {/* Addition 1 — queue depth as the page's one hero. */}
+        {query.data && (
+          <HeroCard
+            state={query.data.length === 0 ? 'ready' : 'ink'}
+            icon={<ShieldCheck className="w-4 h-4" />}
+            label="Awaiting verification"
+            aside={<StatPill tone={query.data.length === 0 ? 'ink' : 'warn'}>{query.data.length} startups</StatPill>}
+            title={query.data.length === 0 ? 'Queue is clear' : `${query.data.length} blocked from applying`}
+            body="Each one can bid the moment its verification is recorded."
+          />
+        )}
 
         <AlertStrip
           type="info"
@@ -97,8 +114,38 @@ export default function AdminComplianceQueuePage() {
                   <StatusBadge status="pending" label="Unverified" />
                 </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="rounded-2xl bg-[#F8F8F4] p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#18181B]">
+                        Submitted fields
+                      </span>
+                      <StatPill tone="ghost">
+                        {[profile.dpiit_number, profile.pan, profile.gst, profile.website, profile.address, (profile.sector_tags ?? []).length ? 'x' : null].filter(Boolean).length} / 6
+                      </StatPill>
+                    </div>
+                    <ProgressCapsule
+                      total={6}
+                      filled={[profile.dpiit_number, profile.pan, profile.gst, profile.website, profile.address, (profile.sector_tags ?? []).length ? 'x' : null].filter(Boolean).length}
+                    />
+                  </div>
+                  <div className="rounded-2xl bg-[#F8F8F4] p-4">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#18181B] block mb-3">
+                      Your draft — updates as you tick
+                    </span>
+                    <DotTrack
+                      dots={[
+                        { label: 'DPIIT', done: draft.dpiit_status === 'verified' },
+                        { label: 'Entity', done: draft.entity_verified },
+                        { label: 'PAN', done: draft.pan_verified },
+                        { label: 'GST', done: draft.gst_verified },
+                      ]}
+                    />
+                  </div>
+                </div>
+
                 <div
-                  className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 p-3 rounded-lg text-xs"
+                  className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 p-3 rounded-2xl text-xs"
                   style={{ backgroundColor: '#F4F4EF', border: '1px solid #E5E5E0' }}
                 >
                   <Submitted label="DPIIT number" value={profile.dpiit_number} />
@@ -154,7 +201,7 @@ export default function AdminComplianceQueuePage() {
                           onChange={(e) =>
                             setDraft(profile.user_id, { [key]: e.target.checked } as Partial<Draft>, draft)
                           }
-                          className="w-4 h-4 accent-[#C81E4A] cursor-pointer"
+                          className="w-4 h-4 accent-[#18181B] cursor-pointer"
                         />
                         {label}
                       </label>

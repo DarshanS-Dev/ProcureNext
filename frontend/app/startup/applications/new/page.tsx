@@ -176,7 +176,7 @@ function NewApplicationForm() {
 
             {selectedPs && (
               <div
-                className="p-3.5 rounded-lg space-y-1.5 text-xs"
+                className="p-3.5 rounded-2xl space-y-1.5 text-xs"
                 style={{ backgroundColor: '#F4F4EF', border: '1px solid #E5E5E0' }}
               >
                 <div className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF]">

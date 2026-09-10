@@ -26,6 +26,7 @@ import {
 } from '@/components/shared/DesignSystem';
 import { ApiErrorState, LoadingBlock, fmtDateTime, humanize } from '@/components/shared/States';
 import {
+  DotTrack,
   IconBadge,
   PageHeader,
   PillTabs,
@@ -182,27 +183,8 @@ export default function StartupProfilePage() {
         {profile && (
           <>
             {/* Level 1 -> Level 2 -> compliance, from field presence and the
-                admin's verification timestamp. */}
-            <DataCard>
-              <div className="flex items-center justify-between gap-3 mb-3">
-                <div className="flex items-center gap-2">
-                  <IconBadge size="sm" icon={<UserCheck className="w-3.5 h-3.5" />} />
-                  <span className="text-xs font-bold uppercase tracking-wider text-[#18181B]">
-                    Registration progress
-                  </span>
-                </div>
-                <StatPill tone={registrationStep === 3 ? 'ok' : 'ghost'}>
-                  {registrationStep} / 3
-                </StatPill>
-              </div>
-              <ProgressCapsule
-                filled={registrationStep}
-                total={3}
-                labels={['Level 1', 'Level 2', 'Verified']}
-              />
-            </DataCard>
-
-            <ComplianceCard profile={profile} />
+                admin's verification timestamp — one journey card. */}
+            <ReadinessJourney profile={profile} step={registrationStep} />
 
             <PillTabs
               active={tab}
@@ -346,7 +328,7 @@ export default function StartupProfilePage() {
                             type="button"
                             onClick={() => toggleArchitecture(tag)}
                             aria-pressed={on}
-                            className="px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wide cursor-pointer transition-colors"
+                            className="px-3 py-1.5 rounded-2xl text-[11px] font-bold uppercase tracking-wide cursor-pointer transition-colors"
                             style={
                               on
                                 ? { backgroundColor: '#EAF7ED', color: '#1E9E5A', border: '1.5px solid #B8E6C4' }
@@ -405,89 +387,65 @@ const SaveRow: React.FC<{
   </>
 );
 
-/** The two gates the backend enforces before an application can be created. */
-const ComplianceCard: React.FC<{ profile: StartupProfileRead }> = ({ profile }) => {
+/**
+ * The registration journey as one card: a three-stage capsule (Level 1 →
+ * Level 2 → Verified) inside a hero that flips ink → lime once the startup can
+ * apply, with the four compliance checks as a dot track underneath. Every
+ * segment is field presence or an admin timestamp — nothing is scored.
+ */
+const ReadinessJourney: React.FC<{ profile: StartupProfileRead; step: number }> = ({
+  profile,
+  step,
+}) => {
   const level2Complete = Boolean(profile.description && profile.trl_stage);
-  const complianceVerified = Boolean(profile.compliance_verified_at);
+  const verified = Boolean(profile.compliance_verified_at);
+  const ready = level2Complete && verified;
 
-  const checks = [
-    { label: 'DPIIT status', ok: profile.dpiit_status === 'verified', value: humanize(profile.dpiit_status) },
-    { label: 'Entity verified', ok: profile.entity_verified, value: profile.entity_verified ? 'Yes' : 'No' },
-    { label: 'PAN verified', ok: profile.pan_verified, value: profile.pan_verified ? 'Yes' : 'No' },
-    { label: 'GST verified', ok: profile.gst_verified, value: profile.gst_verified ? 'Yes' : 'No' },
-  ];
+  const nextStep = !level2Complete
+    ? 'Add a description and TRL stage in Level 2.'
+    : !verified
+      ? 'Waiting on admin compliance verification.'
+      : `Verified ${fmtDateTime(profile.compliance_verified_at)} — you can apply.`;
 
   return (
-    <DataCard className="space-y-4">
+    <div
+      className={`rounded-3xl p-6 shadow-md space-y-5 ${
+        ready ? 'bg-[#D7FD44] text-[#18181B]' : 'bg-[#121212] text-white'
+      }`}
+    >
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <ShieldCheck className="w-4 h-4 text-[#1E9E5A]" />
-          <span className="text-sm font-bold text-[#18181B]">Application readiness</span>
+          <IconBadge
+            size="sm"
+            tone={ready ? 'ink' : 'onDark'}
+            icon={<ShieldCheck className="w-4 h-4" />}
+          />
+          <span className="text-xs font-bold uppercase tracking-wider">Application readiness</span>
         </div>
-        <StatusBadge
-          status={complianceVerified && level2Complete ? 'verified' : 'pending'}
-          label={complianceVerified && level2Complete ? 'Ready to apply' : 'Blocked'}
-        />
+        <StatPill tone={ready ? 'ink' : 'warn'}>{ready ? 'Ready to apply' : `${step} / 3`}</StatPill>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-        <GateRow
-          ok={level2Complete}
-          label="Level 2 profile complete"
-          detail={level2Complete ? 'Description and TRL stage present' : 'Add a description and TRL stage'}
-        />
-        <GateRow
-          ok={complianceVerified}
-          label="Compliance verified by admin"
-          detail={
-            complianceVerified
-              ? `Verified ${fmtDateTime(profile.compliance_verified_at)}`
-              : 'An admin reviews this from the compliance queue'
-          }
-        />
+      <div>
+        <h3 className="text-2xl font-black tracking-tight">
+          {ready ? 'All gates cleared' : step === 2 ? 'Almost there' : 'Finish registering'}
+        </h3>
+        <p className={`text-xs mt-1 ${ready ? 'text-[#18181B]/70' : 'text-gray-400'}`}>{nextStep}</p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
-        {checks.map((c) => (
-          <div
-            key={c.label}
-            className="px-3 py-2 rounded-lg text-center"
-            style={{
-              backgroundColor: c.ok ? '#EAF7ED' : '#F4F4EF',
-              border: `1px solid ${c.ok ? '#B8E6C4' : '#E5E5E0'}`,
-            }}
-          >
-            <div className="text-[9px] font-bold uppercase tracking-wider text-[#9CA3AF]">{c.label}</div>
-            <div
-              className="text-xs font-bold mt-0.5"
-              style={{ color: c.ok ? '#1E9E5A' : '#6B7280' }}
-            >
-              {c.value}
-            </div>
-          </div>
-        ))}
+      <div className={`rounded-2xl p-4 ${ready ? 'bg-white/50' : 'bg-white'}`}>
+        <ProgressCapsule filled={step} total={3} labels={['Level 1', 'Level 2', 'Verified']} />
       </div>
-    </DataCard>
+
+      <div className={`rounded-2xl p-4 ${ready ? 'bg-white/50' : 'bg-white'}`}>
+        <DotTrack
+          dots={[
+            { label: 'DPIIT', done: profile.dpiit_status === 'verified' },
+            { label: 'Entity', done: profile.entity_verified },
+            { label: 'PAN', done: profile.pan_verified },
+            { label: 'GST', done: profile.gst_verified },
+          ]}
+        />
+      </div>
+    </div>
   );
 };
-
-const GateRow: React.FC<{ ok: boolean; label: string; detail: string }> = ({ ok, label, detail }) => (
-  <div
-    className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg"
-    style={{
-      backgroundColor: ok ? '#EAF7ED' : '#FEF6E7',
-      border: `1px solid ${ok ? '#B8E6C4' : '#FEF6E7'}`,
-    }}
-  >
-    <CheckCircle2
-      className="w-4 h-4 shrink-0 mt-0.5"
-      style={{ color: ok ? '#1E9E5A' : '#B45309', opacity: ok ? 1 : 0.4 }}
-    />
-    <div>
-      <div className="text-xs font-bold" style={{ color: ok ? '#1E9E5A' : '#B45309' }}>
-        {label}
-      </div>
-      <div className="text-[11px] text-[#6B7280]">{detail}</div>
-    </div>
-  </div>
-);

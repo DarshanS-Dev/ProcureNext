@@ -16,7 +16,19 @@
 
 import React from 'react';
 import { AppLayout } from '@/components/shared/AppLayout';
-import { AlertStrip, DataCard, DocLinkButton, PageHeader } from '@/components/shared/DesignSystem';
+import { AlertStrip, DataCard, DocLinkButton } from '@/components/shared/DesignSystem';
+import {
+  Card,
+  DonutRing,
+  DotTrack,
+  HeroCard,
+  PageHeader as Header,
+  PillLink,
+  ScopeNote,
+  StatPill,
+  Stepper,
+} from '@/components/shared/design-system';
+import { ScrollText } from 'lucide-react';
 import { PanelHeading } from '@/components/panels/ApplicationPanels';
 
 const FIELDS = [
@@ -33,12 +45,19 @@ export default function AdminAuditLogPage() {
   return (
     <AppLayout allow="admin">
       <div className="space-y-6 max-w-4xl">
-        <PageHeader
-          title="Audit Trail"
+        <Header
+          line1="Audit"
+          glyph={<ScrollText className="w-5 h-5 text-[#18181B]" />}
+          line1Tail="Trail"
           subtitle="Every write on the platform is logged — but the log has no read endpoint yet."
-          phase="Cross-cutting"
-          role="admin"
-          breadcrumb={[{ label: 'Admin', href: '/admin/dashboard' }, { label: 'Audit trail' }]}
+        />
+
+        <HeroCard
+          icon={<ScrollText className="w-4 h-4" />}
+          label="Status"
+          aside={<StatPill tone="warn">No read route</StatPill>}
+          title="Logged, but not readable yet"
+          body="Rows are written on every change. A single admin-only GET route is all this page needs to become a live feed."
         />
 
         <AlertStrip type="warning" title="No endpoint to call">

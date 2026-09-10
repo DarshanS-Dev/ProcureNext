@@ -13,14 +13,25 @@ import {
   DocLinkButton,
   DocSelect,
   DocumentForm,
-  PageHeader,
   StatusBadge,
 } from '@/components/shared/DesignSystem';
+import {
+  Card,
+  DonutRing,
+  DotTrack,
+  HeroCard,
+  PageHeader as Header,
+  PillLink,
+  ScopeNote,
+  StatPill,
+  Stepper,
+} from '@/components/shared/design-system';
+import { ApplicationStatusDonut } from '@/components/shared/domain/Insights';
 import { ApiErrorState, EmptyState, LoadingBlock, fmtDateTime, humanize } from '@/components/shared/States';
 import { api } from '@/lib/api/client';
 import { useQuery } from '@/lib/hooks/useApi';
 import { ApplicationRead, ApplicationStatusEnum, ProblemStatementRead } from '@/lib/types/api';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, BarChart3, PieChart, Stamp } from 'lucide-react';
 
 const STATUSES: ApplicationStatusEnum[] = [
   'applied',
@@ -69,13 +80,50 @@ export default function AdminApplicationsPage() {
   return (
     <AppLayout allow="admin">
       <div className="space-y-6">
-        <PageHeader
-          title="Applications & Compliance Records"
+        <Header
+          line1="Applications"
+          glyph={<Stamp className="w-5 h-5 text-[#18181B]" />}
+          line1Tail="Register"
           subtitle="Every application on the platform, and the audit-grade record you can compile for each."
-          phase="Compliance record"
-          role="admin"
-          breadcrumb={[{ label: 'Admin', href: '/admin/dashboard' }, { label: 'Applications' }]}
         />
+
+        {data.data && data.data.rows.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Card icon={<PieChart className="w-4 h-4" />} label="Platform Pipeline" aside={<StatPill>{visible.length} shown</StatPill>}>
+              <ApplicationStatusDonut apps={visible.map((r) => r.app)} />
+            </Card>
+            <Card className="lg:col-span-2" icon={<BarChart3 className="w-4 h-4" />} label="Volume by Problem Statement">
+              <div className="space-y-2.5">
+                {data.data.problemStatements
+                  .map((ps) => ({ ps, n: data.data!.rows.filter((r) => r.ps.id === ps.id).length }))
+                  .filter((x) => x.n > 0)
+                  .sort((a, b) => b.n - a.n)
+                  .slice(0, 8)
+                  .map(({ ps, n }, _i, all) => {
+                    const max = Math.max(1, ...all.map((c) => c.n));
+                    const on = psFilter === String(ps.id);
+                    return (
+                      <button
+                        key={ps.id}
+                        onClick={() => setPsFilter(on ? '' : String(ps.id))}
+                        className="w-full flex items-center gap-3 text-left group cursor-pointer"
+                      >
+                        <span className="text-[11px] font-bold text-[#18181B] w-40 truncate">{ps.title}</span>
+                        <span className="flex-1 h-5 rounded-full bg-[#F3F3EE] overflow-hidden">
+                          <span
+                            className={`block h-full rounded-full ${on ? 'bg-[#D7FD44]' : 'bg-[#18181B]'}`}
+                            style={{ width: `${(n / max) * 100}%` }}
+                          />
+                        </span>
+                        <StatPill tone="ghost">{n}</StatPill>
+                      </button>
+                    );
+                  })}
+                <p className="text-[10px] text-gray-400 pt-1">Click a bar to filter the register below.</p>
+              </div>
+            </Card>
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-3">
           <div className="w-64">

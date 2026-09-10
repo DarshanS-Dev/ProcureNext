@@ -112,7 +112,7 @@ export default function StartupDiscoverPage() {
               </div>
 
               <div
-                className="p-3 rounded-lg text-xs space-y-1"
+                className="p-3 rounded-2xl text-xs space-y-1"
                 style={{ backgroundColor: '#F4F4EF', border: '1px solid #E5E5E0' }}
               >
                 <Field label="Baseline" value={ps.baseline} />

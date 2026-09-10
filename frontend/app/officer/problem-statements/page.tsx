@@ -14,15 +14,21 @@ import {
   DocLinkButton,
   DocSelect,
   DocumentForm,
-  PageHeader,
   StatusBadge,
 } from '@/components/shared/DesignSystem';
+import {
+  Card,
+  PageHeader,
+  PillLink,
+  StatPill,
+} from '@/components/shared/design-system';
+import { WeeklyActivityChart, bucketByWeek } from '@/components/shared/domain/Insights';
 import { ApiErrorState, EmptyState, LoadingBlock, fmtDate, humanize } from '@/components/shared/States';
 import { api } from '@/lib/api/client';
 import { useMutation, useQuery } from '@/lib/hooks/useApi';
 import { useSession } from '@/lib/auth/session';
 import { PSStatusEnum } from '@/lib/types/api';
-import { ArrowRight, PlusCircle } from 'lucide-react';
+import { ArrowRight, BarChart3, FileText, PlusCircle } from 'lucide-react';
 
 export default function OfficerProblemStatementsPage() {
   const session = useSession();
@@ -42,22 +48,60 @@ export default function OfficerProblemStatementsPage() {
     <AppLayout allow="officer">
       <div className="space-y-6">
         <PageHeader
-          title="Problem Statements"
+          line1="Problem"
+          glyph={<FileText className="w-5 h-5 text-[#18181B]" />}
+          line1Tail="Statements"
           subtitle="Draft, publish and close the challenges startups bid against."
-          phase="Layer 2 · Problem statement"
-          role="officer"
-          breadcrumb={[{ label: 'Officer', href: '/officer/dashboard' }, { label: 'Problem statements' }]}
-          actions={
-            <DocLinkButton
-              href="/officer/problem-statements/new"
-              role="officer"
-              size="sm"
-              icon={<PlusCircle className="w-3.5 h-3.5" />}
-            >
-              New problem statement
-            </DocLinkButton>
+          action={
+            <PillLink href="/officer/problem-statements/new" icon={<PlusCircle className="w-4 h-4" />}>
+              New Problem Statement
+            </PillLink>
           }
         />
+
+        {/* Addition 1 — lifecycle lanes: draft → published → closed, click to filter. */}
+        {psQuery.data && (
+          <div className="grid grid-cols-3 gap-3">
+            {(['draft', 'published', 'closed'] as PSStatusEnum[]).map((lane, idx) => {
+              const count = (psQuery.data ?? []).filter(
+                (ps) => ps.status === lane && (scope === 'all' || ps.officer_id === session?.userId),
+              ).length;
+              const active = status === lane;
+              return (
+                <button
+                  key={lane}
+                  onClick={() => setStatus(active ? '' : lane)}
+                  className={`text-left rounded-3xl p-5 border transition-colors cursor-pointer ${
+                    active
+                      ? 'bg-[#18181B] border-[#18181B] text-white'
+                      : lane === 'published'
+                        ? 'bg-[#D7FD44] border-[#C3EB30] text-[#18181B]'
+                        : 'bg-white border-[#E5E5E0] text-[#18181B] hover:border-[#18181B]'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider opacity-70">
+                      0{idx + 1} · {lane}
+                    </span>
+                    {active && <StatPill tone="accent">Filtering</StatPill>}
+                  </div>
+                  <div className="text-4xl font-black tracking-tight mt-3">{count}</div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Addition 2 — when these statements were opened, by week. */}
+        {rows.length > 0 && (
+          <Card
+            icon={<BarChart3 className="w-4 h-4" />}
+            label="Weekly Activity"
+            aside={<StatPill>{rows.length} shown</StatPill>}
+          >
+            <WeeklyActivityChart bars={bucketByWeek(rows, (ps) => ps.published_at ?? ps.created_at)} />
+          </Card>
+        )}
 
         <div className="flex flex-wrap gap-3">
           <div className="w-48">
