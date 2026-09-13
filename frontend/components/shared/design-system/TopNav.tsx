@@ -17,6 +17,7 @@ import { LogOut, Plus } from 'lucide-react';
 import { ROLE_LABELS, Session, signOut } from '@/lib/auth/session';
 import { ROLE_NAV, activeHref } from './nav-config';
 import { NotificationBell } from './NotificationBell';
+import { Logo } from './Logo';
 
 export const TopNav: React.FC<{ session: Session }> = ({ session }) => {
   const pathname = usePathname();
@@ -34,14 +35,9 @@ export const TopNav: React.FC<{ session: Session }> = ({ session }) => {
       <div className="max-w-7xl mx-auto px-5 h-16 flex items-center gap-4">
         {/* Logo lockup */}
         <Link href="/" className="flex items-center gap-2 shrink-0 group">
-          <span className="w-9 h-9 rounded-full bg-[#18181B] text-[#D7FD44] flex items-center justify-center font-black text-sm transition-transform group-hover:scale-105">
-            PN
-          </span>
-          <span className="hidden sm:flex flex-col leading-none">
-            <span className="text-sm font-black tracking-tight text-[#18181B]">procurenext</span>
-            <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400 mt-0.5">
-              {ROLE_LABELS[session.role]}
-            </span>
+          <Logo className="h-7 w-auto transition-transform group-hover:scale-105" />
+          <span className="hidden lg:block text-[9px] font-bold uppercase tracking-wider text-gray-400 leading-tight">
+            {ROLE_LABELS[session.role]}
           </span>
         </Link>
 

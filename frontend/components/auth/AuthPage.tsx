@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { ApiError, api, setToken } from '@/lib/api/client';
 import { RoleEnum } from '@/lib/types/api';
+import { Logo } from '@/components/shared/design-system';
 
 interface AuthPageProps {
   /** Called with the authenticated account's real role, read from the JWT. */
@@ -157,15 +158,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     <div className="min-h-screen w-full bg-[#F4F4EF] text-black font-sans flex flex-col justify-between p-4 md:p-8">
       <header className="relative z-20 max-w-7xl mx-auto w-full flex items-center justify-between py-2 px-2 md:px-4">
         <div className="flex items-center gap-2.5">
-          <img src="/procurenext-logo.svg" alt="" className="h-10 w-auto" />
-          <div className="flex flex-col">
-            <span className="text-xl font-black tracking-tight text-[#18181B] leading-none">
-              procurenext
-            </span>
-            <span className="text-[10px] text-[#6B7280] font-semibold tracking-wider uppercase mt-0.5">
-              Government Procurement Portal
-            </span>
-          </div>
+          <Logo className="h-10 w-auto" />
+          <span className="hidden sm:block text-[10px] text-[#6B7280] font-semibold tracking-wider uppercase">
+            Government Procurement Portal
+          </span>
         </div>
 
         <button

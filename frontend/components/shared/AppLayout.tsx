@@ -14,7 +14,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { TopNav } from '@/components/shared/design-system';
+import { Logo, TopNav } from '@/components/shared/design-system';
 import { RoleEnum } from '@/lib/types/api';
 import { Session, homeRouteFor, readSession } from '@/lib/auth/session';
 
@@ -54,7 +54,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, allow }) => {
   if (status !== 'ok' || !session) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F4F4EF]">
-        <div className="text-center space-y-3">
+        <div className="text-center space-y-3 flex flex-col items-center">
+          <Logo className="h-10 w-auto mb-3" />
           <div className="w-8 h-8 mx-auto border-2 border-[#18181B] border-t-transparent rounded-full animate-spin" />
           <div className="text-[11px] font-bold uppercase tracking-widest text-gray-400">
             {status === 'redirecting' ? 'Redirecting…' : 'Verifying session…'}

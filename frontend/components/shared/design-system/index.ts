@@ -17,4 +17,5 @@ export * from './primitives';
 export * from './charts';
 export * from './nav-config';
 export { TopNav } from './TopNav';
+export { Logo } from './Logo';
 export { NotificationBell } from './NotificationBell';
