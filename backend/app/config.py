@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"  # development / production
     DEBUG: bool = True
 
-    GROQ_API_KEY: str
+    GROQ_API_KEY: str | None = None
 
 
 @lru_cache

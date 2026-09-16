@@ -519,6 +519,10 @@ export const api = {
     request<COIDeclarationRead>(`/applications/${appId}/coi-declaration`),
 
 
+  /** GET /evaluators/me/applications — applications assigned to the signed-in evaluator. */
+  getMyEvaluatorAssignments: () =>
+    request<ApplicationRead[]>('/evaluators/me/applications'),
+
   // ── Technical scoring ─────────────────────────────────────
   /** GET /rubric-criteria — the seeded platform-wide criteria. */
   getRubricCriteria: () => request<RubricCriterionRead[]>('/rubric-criteria'),
