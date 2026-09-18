@@ -168,7 +168,7 @@ export default function NewProblemStatementPage() {
                   onChange={(e) => setBudgetRange(e.target.value as BudgetRangeEnum | '')}
                 >
                   <option value="">Not set</option>
-                  {BUDGET_RANGE_VALUES.map((b) => (
+                  {BUDGET_RANGE_VALUES.map((b: string) => (
                     <option key={b} value={b}>
                       {humanize(b)}
                     </option>

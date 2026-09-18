@@ -49,3 +49,5 @@ htmlcov/
 =======
 chroma_data/
 >>>>>>> c7de79a (Fixed bugs in evaluator service file)
+
+BACKEND_PERFORMANCE.md

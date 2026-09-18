@@ -108,7 +108,7 @@ export default function IndependentEvaluatorApplicationsPage() {
                 type="submit"
                 size="sm"
                 variant="primary"
-                role="independent-evaluator"
+                role="independent_evaluator"
                 disabled={!appId.trim()}
                 icon={<ArrowRight className="w-3 h-3" />}
               >

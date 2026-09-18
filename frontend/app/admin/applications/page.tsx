@@ -46,21 +46,28 @@ export default function AdminApplicationsPage() {
   const [status, setStatus] = useState<ApplicationStatusEnum | ''>('');
   const [psFilter, setPsFilter] = useState('');
 
+  // Bulk read endpoint: GET /admin/applications (BACKEND_PERFORMANCE.md P0-1)
   const data = useQuery<{ rows: Row[]; problemStatements: ProblemStatementRead[] }>(async () => {
     const problemStatements = await api.getProblemStatements();
-    const lists = await Promise.all(
-      problemStatements.map(async (ps) => {
-        try {
-          const apps = await api.getApplicationsForPS(ps.id);
-          return apps.map((app) => ({ app, ps }));
-        } catch {
-          return [] as Row[];
-        }
-      }),
-    );
+    const allApps = await api.getAdminApplications();
+    const psMap = new Map(problemStatements.map((ps) => [ps.id, ps]));
+
+    const rows: Row[] = allApps.map((app) => ({
+      app,
+      ps: psMap.get(app.problem_statement_id) || {
+        id: app.problem_statement_id,
+        officer_id: 0,
+        title: `Problem Statement #${app.problem_statement_id}`,
+        category: "healthcare",
+        status: "published",
+        created_at: app.created_at,
+        is_locked_field_editable: false,
+      },
+    })).sort((a, b) => b.app.id - a.app.id);
+
     return {
       problemStatements,
-      rows: lists.flat().sort((a, b) => b.app.id - a.app.id),
+      rows,
     };
   }, []);
 

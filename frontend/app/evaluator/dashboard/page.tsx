@@ -29,22 +29,10 @@ export default function EvaluatorDashboardPage() {
   const session = useSession();
   const criteria = useQuery(() => api.getRubricCriteria(), []);
 
+  // Bulk read endpoint: GET /evaluator/problem-statements (BACKEND_PERFORMANCE.md P0-1)
   const assigned = useQuery<ProblemStatementRead[]>(
-    async () => {
-      const all = await api.getProblemStatements();
-      const checks = await Promise.all(
-        all.map(async (ps) => {
-          try {
-            const evaluators = await api.getEvaluatorAssignments(ps.id);
-            return evaluators.some((a) => a.evaluator_id === session!.userId) ? ps : null;
-          } catch {
-            return null;
-          }
-        }),
-      );
-      return checks.filter((ps): ps is ProblemStatementRead => ps !== null);
-    },
-    [session?.userId],
+    () => api.getEvaluatorProblemStatements(),
+    [],
     { enabled: Boolean(session) },
   );
 

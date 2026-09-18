@@ -435,7 +435,7 @@ const DetailsTab: React.FC<{
                 onChange={(e) => set('budget_range', e.target.value as BudgetRangeEnum | '')}
               >
                 <option value="">Not set</option>
-                {BUDGET_RANGE_VALUES.map((b) => (
+                {BUDGET_RANGE_VALUES.map((b: string) => (
                   <option key={b} value={b}>
                     {humanize(b)}
                   </option>

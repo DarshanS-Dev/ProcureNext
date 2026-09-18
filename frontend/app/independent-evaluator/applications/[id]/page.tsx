@@ -79,7 +79,7 @@ function VerificationWorkspace({ appId }: { appId: number }) {
             : `Problem statement #${app.problem_statement_id}`
         }
         phase={`Application #${app.id}`}
-        role="independent-evaluator"
+        role="independent_evaluator"
         breadcrumb={[
           { label: 'Independent evaluator', href: '/independent-evaluator/dashboard' },
           { label: 'Applications', href: '/independent-evaluator/applications' },
@@ -94,7 +94,7 @@ function VerificationWorkspace({ appId }: { appId: number }) {
         {resolvedContractId ? ` · contract #${resolvedContractId}` : ''}
       </div>
 
-      <TabStrip tabs={TABS} active={active} onChange={setActive} role="independent-evaluator" />
+      <TabStrip tabs={TABS} active={active} onChange={setActive} role="independent_evaluator" />
 
       <div className="space-y-5">
         {active === 'sandbox' && <SandboxTrialPanel appId={appId} canRecord />}

@@ -42,17 +42,11 @@ export default function OfficerDashboardPage() {
   const ps = useQuery(() => api.getProblemStatements(), []);
   const mine = (ps.data ?? []).filter((p) => session && p.officer_id === session.userId);
 
-  // Applications only list per problem statement, so the counts are a fan-out
-  // over the officer's own statements.
+  // Bulk read endpoint: GET /officer/applications (BACKEND_PERFORMANCE.md P0-1)
   const apps = useQuery<ApplicationRead[]>(
-    async () => {
-      const lists = await Promise.all(
-        mine.map((p) => api.getApplicationsForPS(p.id).catch(() => [] as ApplicationRead[])),
-      );
-      return lists.flat();
-    },
-    [mine.map((p) => p.id).join(',')],
-    { enabled: Boolean(session) && !ps.loading },
+    () => api.getOfficerApplications(),
+    [],
+    { enabled: Boolean(session) },
   );
 
   const appRows = apps.data ?? [];

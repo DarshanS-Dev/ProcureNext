@@ -1197,7 +1197,7 @@ export const SandboxTrialPanel: React.FC<{ appId: number; canRecord?: boolean }>
             type="submit"
             size="sm"
             variant="primary"
-            role="independent-evaluator"
+            role="independent_evaluator"
             loading={finalize.pending}
           >
             Finalise trial
@@ -1272,7 +1272,7 @@ export const SandboxTrialPanel: React.FC<{ appId: number; canRecord?: boolean }>
             type="submit"
             size="sm"
             variant="primary"
-            role="independent-evaluator"
+            role="independent_evaluator"
             loading={create.pending}
           >
             Record sandbox trial
@@ -1694,7 +1694,7 @@ export const MilestonesPanel: React.FC<{
                 <DocButton
                   size="sm"
                   variant="primary"
-                  role="independent-evaluator"
+                  role="independent_evaluator"
                   disabled={action.pending}
                   onClick={() =>
                     action.run(
@@ -1947,7 +1947,7 @@ export const KPIVerdictsPanel: React.FC<{
             type="submit"
             size="sm"
             variant="primary"
-            role="independent-evaluator"
+            role="independent_evaluator"
             loading={record.pending}
             disabled={!kpiId}
           >

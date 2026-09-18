@@ -697,6 +697,30 @@ export const api = {
   /** GET /admin/compliance-records/{record_id} */
   getComplianceRecord: (recordId: number) =>
     request<ComplianceRecordRead>(`/admin/compliance-records/${recordId}`),
+
+  // ── Bulk endpoints (BACKEND_PERFORMANCE.md P0-1) ─────
+  /** GET /officer/applications — officer, self */
+  getOfficerApplications: () =>
+    request<ApplicationRead[]>('/officer/applications'),
+
+  /** GET /admin/applications — admin, platform-wide */
+  getAdminApplications: () =>
+    request<ApplicationRead[]>('/admin/applications'),
+
+  /** GET /evaluator/problem-statements — evaluator, self */
+  getEvaluatorProblemStatements: () =>
+    request<ProblemStatementRead[]>('/evaluator/problem-statements'),
+
+  /** GET /eligibility-checks?application_ids=1,2,3 — officer/admin */
+  getBulkEligibilityChecks: (applicationIds: number[]) =>
+    request<EligibilityCheckRead[]>(
+      `/eligibility-checks?application_ids=${applicationIds.join(',')}`
+    ),
+
+  /** GET /officer/contracts — officer, self */
+  getOfficerContracts: () =>
+    request<ContractRead[]>('/officer/contracts'),
 };
 
 export type { AuditLogRead };
+

@@ -69,7 +69,7 @@ export const ROLE_PALETTE: Record<
     label: 'Evaluator',
     icon: <Scale className="w-3.5 h-3.5" />,
   },
-  'independent-evaluator': {
+  independent_evaluator: {
     tintBg: '#F3F3EE',
     accentText: '#18181B',
     accentBorder: '#E5E5E0',
