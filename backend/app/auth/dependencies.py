@@ -5,21 +5,51 @@ FastAPI dependency-injection layer for auth. Pure request-plumbing — no
 business logic lives here (that's auth_service.py's job). Every router
 depends on this module via Depends(get_current_user) / Depends(require_role(...)).
 
-Judgment call flagged inline:
+PERFORMANCE PASS (this session, per BACKEND_PERFORMANCE.md P1-2):
+get_current_user previously queried the `users` table by id on every single
+request — including every request in a fanned-out page load (20-60x for the
+same user within a few seconds, per P0-1's bulk-endpoint discussion). Added
+a short-TTL in-memory cache keyed by user_id in front of that query.
 
-1. `require_role` only checks ROLE membership (e.g. "is this an officer?").
-   It does NOT check OWNERSHIP (e.g. "is this the officer who owns THIS
-   specific ProblemStatement?"). Doc D's endpoint table uses labels like
-   "officer-owner" and "startup-own" throughout — those ownership
-   comparisons are NOT handled here. They're either done explicitly inside
-   the router (comparing current_user.id against the row's officer_id/
-   startup_id before calling the service) or already enforced inside the
-   service layer itself (e.g. problem_statement_service.update_problem_statement
-   already raises PermissionError if officer_id doesn't match). Routers
-   using an "-owner"/"-own" endpoint must not assume require_role() alone
-   is sufficient.
+Chose caching over "trust the token and skip the DB entirely" (the doc's
+Option B) — the JWT already carries sub+role and could be trusted for
+read-only routes, but that means a revoked/deactivated/role-changed user
+stays valid for the rest of the token's 24h life. No user-deactivation path
+exists yet, but this will matter once one does. A short TTL keeps almost
+all of the benefit (the fan-out pattern is many requests within seconds)
+without that security tradeoff.
+
+Judgment calls flagged inline:
+
+1. TTL = 30s. Long enough to absorb an entire fanned-out page load (P0-1
+   endpoints reduce this a lot already, but P1-2 still helps every other
+   endpoint plus whatever fan-out remains). Short enough that a role change
+   via /admin/users or any future deactivation surfaces within 30s, not 24h.
+
+2. Cache is a plain in-process dict with (value, expiry) tuples — NOT Redis
+   or any shared store. This means with `--workers 4` (P0-4), each worker
+   process has its own cache, and a user might see a stale row in one
+   worker and a fresh one in another for up to 30s. Acceptable for this
+   TTL window; flagged in case a shared cache is wanted later once the
+   app is horizontally scaled beyond a single machine (at which point an
+   in-process cache alone won't even keep workers on the same box in sync
+   either — a real distributed cache would be the fix then, not this one).
+
+3. Cache is invalidated implicitly by TTL expiry only — no explicit
+   invalidation hook on user mutation (e.g. role change via admin, future
+   deactivation). Doc B/PRD doesn't have a user-update endpoint yet besides
+   creation, so there's nothing to hook into today. Flagged: if
+   PATCH /admin/users/{id} is ever added, that's the function to add an
+   explicit cache.pop(user_id) call to, rather than waiting out the TTL.
+
+4. No cache size cap / eviction policy beyond TTL-on-read (expired entries
+   are dropped lazily when checked, not proactively swept). For this
+   platform's expected user count (startups + a handful of officers/
+   evaluators/admins), unbounded-until-TTL-checked is a non-issue. Flagging
+   in case this ever needs to become an LRU with a max size.
 """
 
+import time
 from typing import Callable
 
 from fastapi import Depends, HTTPException, status
@@ -39,16 +69,43 @@ from app.services import auth_service
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
+# ============================================================
+# User lookup cache (judgment calls #1-4 above)
+# ============================================================
+
+_USER_CACHE_TTL_SECONDS = 30
+_user_cache: dict[int, tuple[User, float]] = {}
+
+
+def _get_cached_user(db: Session, user_id: int) -> "User | None":
+    """Returns the cached User row if present and not expired, else queries
+    the DB and repopulates the cache. Expired entries are dropped lazily
+    (judgment call #4) rather than swept proactively."""
+    now = time.monotonic()
+    cached = _user_cache.get(user_id)
+    if cached is not None:
+        user, expires_at = cached
+        if now < expires_at:
+            return user
+        del _user_cache[user_id]
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is not None:
+        _user_cache[user_id] = (user, now + _USER_CACHE_TTL_SECONDS)
+    return user
+
+
 def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
 ) -> User:
     """
-    Decodes the Bearer token, loads the corresponding User row.
-    Raises 401 on: missing/malformed token, expired token, invalid
-    signature, or a token whose subject no longer maps to a real User
-    (e.g. account deleted after the token was issued — no such deletion
-    path exists yet, but defended against regardless).
+    Decodes the Bearer token, loads the corresponding User row (via the
+    short-TTL cache above — see module docstring). Raises 401 on:
+    missing/malformed token, expired token, invalid signature, or a token
+    whose subject no longer maps to a real User (e.g. account deleted
+    after the token was issued — no such deletion path exists yet, but
+    defended against regardless).
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -76,7 +133,7 @@ def get_current_user(
     except (TypeError, ValueError):
         raise credentials_exception
 
-    user = db.query(User).filter(User.id == user_id).first()
+    user = _get_cached_user(db, user_id)
     if user is None:
         raise credentials_exception
 
