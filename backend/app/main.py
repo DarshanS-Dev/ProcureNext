@@ -19,6 +19,7 @@ from app.routers import (
     sandbox_trial,
     scoring,
     startup_profiles,
+    bulk,
 )
 
 app = FastAPI(title="SIH26136 — Startup Procurement Platform")
@@ -49,3 +50,5 @@ app.include_router(kpi_verdicts.router)
 app.include_router(pilot_outcome.router)
 app.include_router(compliance_record.router)
 app.include_router(invite.router)
+
+app.include_router(bulk.router)
