@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from app.routers import uploads
 
 from app.routers import (
     applications,
@@ -49,3 +50,6 @@ app.include_router(kpi_verdicts.router)
 app.include_router(pilot_outcome.router)
 app.include_router(compliance_record.router)
 app.include_router(invite.router)
+
+
+app.include_router(uploads.router)
