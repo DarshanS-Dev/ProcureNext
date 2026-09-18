@@ -4,6 +4,14 @@ Source of truth: PRD v4 §16 (schema locked, 24 tables, 5 layers + cross-cutting
 Implementation-level column choices follow Doc B (Layers 1-4) and Doc C (Layer 5)
 where they add detail the PRD left open — priority given to the tech-impl docs
 per team convention. Do NOT change table shapes here without re-locking the PRD.
+
+PERFORMANCE PASS (this session, per BACKEND_PERFORMANCE.md P0-2):
+Added index=True to non-unique foreign key columns that are filtered on in
+hot-path queries, plus a few composite indexes for columns that are always
+queried together. Postgres does NOT auto-index plain foreign keys (only PKs
+and unique constraints get one automatically), so these were previously full
+table scans. No table shapes, column types, or nullability changed — index-only
+diff. See BACKEND_PERFORMANCE.md for the full audit and per-column rationale.
 """
 
 import enum
@@ -15,6 +23,7 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
+    Index,
     Integer,
     JSON,
     Numeric,
@@ -229,6 +238,7 @@ class StartupProfile(Base):
     __tablename__ = "startup_profiles"
 
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
+    # NOTE: user_id is the PK here, so it's already indexed — no change needed.
 
     # Level 1
     entity_type = Column(String, nullable=True)
@@ -278,7 +288,10 @@ class ProblemStatement(Base):
     __tablename__ = "problem_statements"
 
     id = Column(Integer, primary_key=True)
-    officer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # PERF: officer dashboard/queue filters on officer_id constantly
+    # (problem_statement_service, applications.py, qcbs.py, evaluators.py all
+    # do _is_officer_of_ps lookups keyed off this).
+    officer_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
     category = Column(Enum(CategoryEnum), nullable=False)
@@ -318,8 +331,11 @@ class Application(Base):
     )
 
     id = Column(Integer, primary_key=True)
-    problem_statement_id = Column(Integer, ForeignKey("problem_statements.id"), nullable=False)
-    startup_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # PERF: the two most-filtered columns in the whole schema — every
+    # officer-side list (GET /applications?problem_statement_id=) and every
+    # startup-side list (GET /applications?startup_id=) hits these directly.
+    problem_statement_id = Column(Integer, ForeignKey("problem_statements.id"), nullable=False, index=True)
+    startup_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     technical_proposal = Column(JSON, nullable=True)
     commercial_proposal = Column(JSON, nullable=True)
     status = Column(
@@ -336,6 +352,7 @@ class EligibilityCheck(Base):
     __tablename__ = "eligibility_checks"
 
     id = Column(Integer, primary_key=True)
+    # NOTE: unique=True already gives this an index — no change needed.
     application_id = Column(Integer, ForeignKey("applications.id"), nullable=False, unique=True)
 
     # Snapshot copies of StartupProfile at check time (§5.1) — never re-verified live
@@ -370,7 +387,9 @@ class ChecklistItem(Base):
     __tablename__ = "checklist_items"
 
     id = Column(Integer, primary_key=True)
-    application_id = Column(Integer, ForeignKey("applications.id"), nullable=False)
+    # PERF: get_checklist_for_application / is_checklist_complete filter on this
+    # for every checklist read.
+    application_id = Column(Integer, ForeignKey("applications.id"), nullable=False, index=True)
     document_name = Column(String, nullable=False)
     status = Column(Enum(ChecklistStatusEnum), nullable=False, default=ChecklistStatusEnum.pending)
     file_reference = Column(String, nullable=True)
@@ -383,11 +402,19 @@ class PSEvaluatorAssignment(Base):
     __tablename__ = "ps_evaluator_assignments"
     __table_args__ = (
         UniqueConstraint("problem_statement_id", "evaluator_id", name="uq_ps_evaluator"),
+        # PERF: get_unrecused_evaluator_ids / scoring completeness / decision
+        # readiness all query "assignments for this PS" and "is this evaluator
+        # assigned" together — composite covers both the plain PS-only lookups
+        # (leftmost-column) and the exact-pair lookups.
+        Index("ix_ps_evaluator_ps_evaluator", "problem_statement_id", "evaluator_id"),
     )
 
     id = Column(Integer, primary_key=True)
-    problem_statement_id = Column(Integer, ForeignKey("problem_statements.id"), nullable=False)
-    evaluator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # PERF: individually indexed too — get_ps_evaluators filters by
+    # problem_statement_id alone; nothing filters by evaluator_id alone today,
+    # but cheap to have given how small this table stays.
+    problem_statement_id = Column(Integer, ForeignKey("problem_statements.id"), nullable=False, index=True)
+    evaluator_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     assigned_by = Column(Integer, ForeignKey("users.id"), nullable=False)  # role='admin'
     assigned_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -409,11 +436,16 @@ class EvaluationScore(Base):
         UniqueConstraint(
             "application_id", "evaluator_id", "criterion_id", name="uq_score_app_eval_criterion"
         ),
+        # PERF: scoring_service.get_scoring_completeness and
+        # qcbs_service.compute_technical_score both query
+        # (application_id, evaluator_id) together on every call — this is the
+        # single hottest read pattern in Layer 4.
+        Index("ix_eval_scores_app_evaluator", "application_id", "evaluator_id"),
     )
 
     id = Column(Integer, primary_key=True)
-    application_id = Column(Integer, ForeignKey("applications.id"), nullable=False)
-    evaluator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    application_id = Column(Integer, ForeignKey("applications.id"), nullable=False, index=True)
+    evaluator_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     criterion_id = Column(Integer, ForeignKey("rubric_criteria.id"), nullable=False)
     score = Column(Numeric, nullable=False)  # 0-100
     justification = Column(Text, nullable=False)
@@ -426,11 +458,15 @@ class COIDeclaration(Base):
     __tablename__ = "coi_declarations"
     __table_args__ = (
         UniqueConstraint("application_id", "evaluator_id", name="uq_coi_app_eval"),
+        # PERF: decision_readiness_service._check_no_unresolved_coi and
+        # scoring_service's COI gate both query this exact pair on every
+        # scoring attempt and every readiness check.
+        Index("ix_coi_app_evaluator", "application_id", "evaluator_id"),
     )
 
     id = Column(Integer, primary_key=True)
-    application_id = Column(Integer, ForeignKey("applications.id"), nullable=False)
-    evaluator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    application_id = Column(Integer, ForeignKey("applications.id"), nullable=False, index=True)
+    evaluator_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     declared_conflict = Column(Boolean, nullable=False, default=False)
     recused = Column(Boolean, nullable=False, default=False)  # auto-true if declared_conflict
     declared_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -441,7 +477,9 @@ class RiskProfile(Base):
     __tablename__ = "risk_profiles"
 
     id = Column(Integer, primary_key=True)
-    application_id = Column(Integer, ForeignKey("applications.id"), nullable=False)
+    # PERF: get_final_risk_profile / get_risk_profiles_for_application filter
+    # on this for every decision-readiness check and every risk-profile read.
+    application_id = Column(Integer, ForeignKey("applications.id"), nullable=False, index=True)
     technical_risk = Column(Enum(RiskLevelEnum), nullable=False)
     financial_risk = Column(Enum(RiskLevelEnum), nullable=False)
     implementation_risk = Column(Enum(RiskLevelEnum), nullable=False)
@@ -457,6 +495,7 @@ class ContainmentPlan(Base):
     __tablename__ = "containment_plans"
 
     id = Column(Integer, primary_key=True)
+    # NOTE: unique=True already gives this an index — no change needed.
     application_id = Column(Integer, ForeignKey("applications.id"), nullable=False, unique=True)
     max_scope = Column(Text, nullable=True)
     max_financial_exposure = Column(String, nullable=True)
@@ -473,7 +512,9 @@ class SelectionDecision(Base):
     __tablename__ = "selection_decisions"
 
     id = Column(Integer, primary_key=True)
-    problem_statement_id = Column(Integer, ForeignKey("problem_statements.id"), nullable=False)
+    # PERF: create_selection_decision's "does a SelectionDecision already exist
+    # for this PS" check runs on every selection attempt.
+    problem_statement_id = Column(Integer, ForeignKey("problem_statements.id"), nullable=False, index=True)
     application_id = Column(Integer, ForeignKey("applications.id"), nullable=False)  # the selected one
     officer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     decided_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -488,6 +529,7 @@ class SandboxTrial(Base):
     __tablename__ = "sandbox_trials"
 
     id = Column(Integer, primary_key=True)
+    # NOTE: unique=True already gives this an index — no change needed.
     application_id = Column(Integer, ForeignKey("applications.id"), nullable=False, unique=True)
     functional_check = Column(Enum(SandboxCheckEnum), nullable=True)
     directional_kpi_check = Column(Enum(SandboxCheckEnum), nullable=True)
@@ -505,6 +547,7 @@ class Contract(Base):
     __tablename__ = "contracts"
 
     id = Column(Integer, primary_key=True)
+    # NOTE: unique=True already gives this an index — no change needed.
     application_id = Column(Integer, ForeignKey("applications.id"), nullable=False, unique=True)
     clause_snapshot = Column(JSON, nullable=False)  # frozen at creation, not a live FK
     initiated_by = Column(Integer, ForeignKey("users.id"), nullable=False)  # role='officer'
@@ -516,7 +559,8 @@ class PilotMilestone(Base):
     __tablename__ = "pilot_milestones"
 
     id = Column(Integer, primary_key=True)
-    contract_id = Column(Integer, ForeignKey("contracts.id"), nullable=False)
+    # PERF: get_milestones / every milestone read filters by this.
+    contract_id = Column(Integer, ForeignKey("contracts.id"), nullable=False, index=True)
     milestone_type = Column(Enum(MilestoneTypeEnum), nullable=False)
     display_name = Column(String, nullable=True)
     due_date = Column(Date, nullable=True)
@@ -532,7 +576,9 @@ class Evidence(Base):
     __tablename__ = "evidence"
 
     id = Column(Integer, primary_key=True)
-    milestone_id = Column(Integer, ForeignKey("pilot_milestones.id"), nullable=False)
+    # PERF: _compile_milestones (ComplianceRecord) queries evidence per
+    # milestone in a loop — at minimum this makes each of those lookups fast.
+    milestone_id = Column(Integer, ForeignKey("pilot_milestones.id"), nullable=False, index=True)
     source_tag = Column(Enum(EvidenceSourceEnum), nullable=False)
     file_reference = Column(String, nullable=True)
     submitted_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -542,7 +588,8 @@ class KPI(Base):
     __tablename__ = "kpis"
 
     id = Column(Integer, primary_key=True)
-    problem_statement_id = Column(Integer, ForeignKey("problem_statements.id"), nullable=False)
+    # PERF: list_kpis / all_kpi_verdicts_present both filter by this.
+    problem_statement_id = Column(Integer, ForeignKey("problem_statements.id"), nullable=False, index=True)
     name = Column(String, nullable=False)
     baseline = Column(String, nullable=True)
     target = Column(String, nullable=True)
@@ -553,19 +600,27 @@ class KPIVerdict(Base):
     __tablename__ = "kpi_verdicts"
 
     id = Column(Integer, primary_key=True)
-    kpi_id = Column(Integer, ForeignKey("kpis.id"), nullable=False)
-    contract_id = Column(Integer, ForeignKey("contracts.id"), nullable=False)
+    # PERF: all_kpi_verdicts_present / pilot_success query verdicts by
+    # contract_id on every call, and create_kpi_verdict checks
+    # (kpi_id, contract_id) for duplicates — composite covers that pair too.
+    kpi_id = Column(Integer, ForeignKey("kpis.id"), nullable=False, index=True)
+    contract_id = Column(Integer, ForeignKey("contracts.id"), nullable=False, index=True)
     verdict = Column(Enum(KPIVerdictResultEnum), nullable=False)
     verification_mode = Column(Enum(VerificationModeEnum), nullable=False)
     verified_by = Column(Integer, ForeignKey("users.id"), nullable=False)  # role=independent_evaluator
     justification = Column(Text, nullable=True)
     verified_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    __table_args__ = (
+        Index("ix_kpi_verdicts_kpi_contract", "kpi_id", "contract_id"),
+    )
+
 
 class PilotOutcome(Base):
     __tablename__ = "pilot_outcomes"
 
     id = Column(Integer, primary_key=True)
+    # NOTE: unique=True already gives this an index — no change needed.
     contract_id = Column(Integer, ForeignKey("contracts.id"), nullable=False, unique=True)
     overall_result = Column(Enum(PilotOutcomeResultEnum), nullable=False)
     rationale = Column(Text, nullable=True)
@@ -580,9 +635,17 @@ class PilotOutcome(Base):
 class AuditLog(Base):
     """Append-only. No update/delete at the app layer — insert-only by design."""
     __tablename__ = "audit_logs"
+    __table_args__ = (
+        # PERF: no reader exists yet (per audit_log_service.py's own docstring),
+        # but the two obvious future consumers — ComplianceRecord generation and
+        # an admin audit-log viewer — both filter by "logs for this entity" and
+        # "logs by this actor". Adding now since it's a zero-risk, zero-behavior
+        # change and avoids a second migration later.
+        Index("ix_audit_logs_entity", "entity_type", "entity_id"),
+    )
 
     id = Column(Integer, primary_key=True)
-    actor_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    actor_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     action = Column(String, nullable=False)  # e.g. ps_published, application_submitted, score_recorded
     entity_type = Column(String, nullable=False)  # e.g. "ProblemStatement", "Application"
     entity_id = Column(Integer, nullable=False)
@@ -596,8 +659,9 @@ class Invite(Base):
     __tablename__ = "invites"
 
     id = Column(Integer, primary_key=True)
-    problem_statement_id = Column(Integer, ForeignKey("problem_statements.id"), nullable=False)
-    startup_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # PERF: list_invites_for_ps / list_invites_for_startup filter on these.
+    problem_statement_id = Column(Integer, ForeignKey("problem_statements.id"), nullable=False, index=True)
+    startup_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     invited_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -607,8 +671,11 @@ class ComplianceRecord(Base):
     __tablename__ = "compliance_records"
 
     id = Column(Integer, primary_key=True)
-    problem_statement_id = Column(Integer, ForeignKey("problem_statements.id"), nullable=False)
-    application_id = Column(Integer, ForeignKey("applications.id"), nullable=True)  # nullable: PS-wide records (not modeled in MVP, but column allows it)
+    # PERF: list_compliance_records filters by application_id; a PS-wide
+    # viewer (not yet built, but flagged as a future consumer) would filter
+    # by problem_statement_id.
+    problem_statement_id = Column(Integer, ForeignKey("problem_statements.id"), nullable=False, index=True)
+    application_id = Column(Integer, ForeignKey("applications.id"), nullable=True, index=True)  # nullable: PS-wide records (not modeled in MVP, but column allows it)
     generated_at = Column(DateTime(timezone=True), server_default=func.now())
     generated_by = Column(Integer, ForeignKey("users.id"), nullable=False)  # role='admin'
     snapshot = Column(JSON, nullable=False)

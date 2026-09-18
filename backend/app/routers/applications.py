@@ -63,7 +63,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user, require_role
 from app.database import get_db
-from app.models import Application, ProblemStatement, RoleEnum, User
+from app.models import Application, ApplicationStatusEnum, PSEvaluatorAssignment, ProblemStatement, RoleEnum, SandboxTrial, SandboxVerdictEnum, User
 from app.schemas.core_schemas import (
     ApplicationCreate,
     ApplicationRead,
@@ -268,3 +268,111 @@ def select_application(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"message": "Decision Readiness gate failed", "readiness": exc.readiness},
         )
+
+    
+@router.get("/evaluators/me/applications", response_model=list[ApplicationRead])
+def list_my_evaluator_applications(
+    current_user: User = Depends(require_role(RoleEnum.evaluator)),
+    db: Session = Depends(get_db),
+):
+    """
+    GET /evaluators/me/applications — evaluator, self.
+
+    Returns every Application under any ProblemStatement this evaluator is
+    assigned to (via PSEvaluatorAssignment), regardless of that
+    application's current status or whether this evaluator has already
+    scored it — the frontend is expected to cross-reference against
+    GET /applications/{id}/scores or /coi-declaration to figure out what's
+    still pending. Deliberately not filtered to "not yet scored" here,
+    since recusal (COIDeclaration.recused=True) is per-application and
+    this endpoint has no clean way to represent "still needs action" vs.
+    "recused, nothing to do" without duplicating scoring_service's
+    completeness logic — left to the frontend to resolve per Application.
+    """
+    assigned_ps_ids = {
+        row[0]
+        for row in (
+            db.query(PSEvaluatorAssignment.problem_statement_id)
+            .filter(PSEvaluatorAssignment.evaluator_id == current_user.id)
+            .all()
+        )
+    }
+    if not assigned_ps_ids:
+        return []
+
+    return (
+        db.query(Application)
+        .filter(Application.problem_statement_id.in_(assigned_ps_ids))
+        .all()
+    )
+
+# ============================================================
+# Independent Evaluator — "my applications" convenience reads
+# ============================================================
+#
+# JUDGMENT CALL (unchanged from before): no assignment table exists for
+# independent_evaluator anywhere in the locked schema — any
+# independent_evaluator may act on any application, role-gated only. So
+# these return jurisdiction-based buckets, not literal assignments.
+#
+# Split into two buckets per actual follow-up action, since "selected" and
+# "contracted" require different next steps from this role:
+#   - needing_sandbox:   status=selected AND no SandboxTrial yet, OR the
+#                         existing SandboxTrial's verdict is inconclusive
+#                         (bounded retry still open, Doc C Stage A #4).
+#                         Applications with a SandboxTrial already at
+#                         verdict=promising are excluded — that one's done;
+#                         it's sitting on the Officer to create the Contract,
+#                         not on this role to act further.
+#   - needing_milestones_or_kpis: status=contracted. Covers both milestone
+#                         review and KPI verdict submission — no schema
+#                         distinction exists between "milestones pending"
+#                         and "KPIs pending" at the Application level, so
+#                         this is left as one bucket; frontend cross-checks
+#                         GET /contracts/{id}/milestones and
+#                         GET /contracts/{id}/kpi-verdicts for what's
+#                         actually outstanding.
+
+@router.get(
+    "/independent-evaluators/me/applications",
+    response_model=dict[str, list[ApplicationRead]],
+)
+def list_my_independent_evaluator_applications(
+    current_user: User = Depends(require_role(RoleEnum.independent_evaluator)),
+    db: Session = Depends(get_db),
+):
+    """GET /independent-evaluators/me/applications — independent_evaluator, self.
+    Returns {"needing_sandbox": [...], "needing_milestones_or_kpis": [...]}."""
+    selected_applications = (
+        db.query(Application)
+        .filter(Application.status == ApplicationStatusEnum.selected)
+        .all()
+    )
+
+    selected_ids = [a.id for a in selected_applications]
+    promising_application_ids = {
+        row[0]
+        for row in (
+            db.query(SandboxTrial.application_id)
+            .filter(
+                SandboxTrial.application_id.in_(selected_ids),
+                SandboxTrial.verdict == SandboxVerdictEnum.promising,
+            )
+            .all()
+        )
+    } if selected_ids else set()
+
+    needing_sandbox = [
+        a for a in selected_applications if a.id not in promising_application_ids
+    ]
+
+    needing_milestones_or_kpis = (
+        db.query(Application)
+        .filter(Application.status == ApplicationStatusEnum.contracted)
+        .all()
+    )
+
+    return {
+        "needing_sandbox": needing_sandbox,
+        "needing_milestones_or_kpis": needing_milestones_or_kpis,
+    }

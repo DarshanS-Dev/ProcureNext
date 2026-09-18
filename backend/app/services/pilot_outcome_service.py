@@ -103,7 +103,7 @@ def create_pilot_outcome(
     db.refresh(outcome)
 
     # Doc C Stage E #3 — fires regardless of scale/iterate/stop.
-    mark_application_completed(application_id=application.id)
+    mark_application_completed(db=db, application_id=application.id)
 
     # TODO(AuditLog): Doc A §5 lists `pilot_outcome_decided` as a Layer 5
     # domain event. Not written here yet — logging pattern is still open

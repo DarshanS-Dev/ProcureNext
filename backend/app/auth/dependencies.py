@@ -1,25 +1,5 @@
-"""
-app/auth/dependencies.py
-
-FastAPI dependency-injection layer for auth. Pure request-plumbing — no
-business logic lives here (that's auth_service.py's job). Every router
-depends on this module via Depends(get_current_user) / Depends(require_role(...)).
-
-Judgment call flagged inline:
-
-1. `require_role` only checks ROLE membership (e.g. "is this an officer?").
-   It does NOT check OWNERSHIP (e.g. "is this the officer who owns THIS
-   specific ProblemStatement?"). Doc D's endpoint table uses labels like
-   "officer-owner" and "startup-own" throughout — those ownership
-   comparisons are NOT handled here. They're either done explicitly inside
-   the router (comparing current_user.id against the row's officer_id/
-   startup_id before calling the service) or already enforced inside the
-   service layer itself (e.g. problem_statement_service.update_problem_statement
-   already raises PermissionError if officer_id doesn't match). Routers
-   using an "-owner"/"-own" endpoint must not assume require_role() alone
-   is sufficient.
-"""
-
+import time
+from dataclasses import dataclass
 from typing import Callable
 
 from fastapi import Depends, HTTPException, status
@@ -31,25 +11,55 @@ from app.database import get_db
 from app.models import RoleEnum, User
 from app.services import auth_service
 
-# tokenUrl points at the login endpoint purely for OpenAPI docs/Swagger's
-# "Authorize" button — this app issues tokens via JSON body, not OAuth2
-# form-encoded password flow, but OAuth2PasswordBearer is still the
-# correct/standard way to extract a Bearer token from the Authorization
-# header in FastAPI regardless of how the token was originally obtained.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+
+
+# ============================================================
+# User lookup cache (judgment calls #1-4 above)
+# ============================================================
+
+_USER_CACHE_TTL_SECONDS = 30
+
+
+@dataclass(frozen=True)
+class CachedUser:
+    """Plain snapshot of the fields callers actually need from User —
+    never the ORM instance itself. Caching the live SQLAlchemy object
+    caused DetachedInstanceError once its originating request's session
+    closed (session is request-scoped via get_db(); the cache is not).
+    Add fields here as routers start needing them (e.g. .name is already
+    included since some routes read current_user.name)."""
+    id: int
+    email: str
+    name: str
+    role: RoleEnum
+
+
+_user_cache: dict[int, tuple[CachedUser, float]] = {}
+
+
+def _get_cached_user(db: Session, user_id: int) -> "CachedUser | None":
+    now = time.monotonic()
+    cached = _user_cache.get(user_id)
+    if cached is not None:
+        cached_user, expires_at = cached
+        if now < expires_at:
+            return cached_user
+        del _user_cache[user_id]
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        return None
+
+    snapshot = CachedUser(id=user.id, email=user.email, name=user.name, role=user.role)
+    _user_cache[user_id] = (snapshot, now + _USER_CACHE_TTL_SECONDS)
+    return snapshot
 
 
 def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
-) -> User:
-    """
-    Decodes the Bearer token, loads the corresponding User row.
-    Raises 401 on: missing/malformed token, expired token, invalid
-    signature, or a token whose subject no longer maps to a real User
-    (e.g. account deleted after the token was issued — no such deletion
-    path exists yet, but defended against regardless).
-    """
+) -> CachedUser:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -76,23 +86,15 @@ def get_current_user(
     except (TypeError, ValueError):
         raise credentials_exception
 
-    user = db.query(User).filter(User.id == user_id).first()
+    user = _get_cached_user(db, user_id)
     if user is None:
         raise credentials_exception
 
     return user
 
 
-def require_role(*allowed_roles: RoleEnum) -> Callable[[User], User]:
-    """
-    Dependency factory. Usage:
-        Depends(require_role(RoleEnum.officer, RoleEnum.admin))
-
-    Checks ROLE MEMBERSHIP ONLY — see judgment call #1 above regarding
-    ownership checks, which are NOT this function's responsibility.
-    """
-
-    def _check_role(current_user: User = Depends(get_current_user)) -> User:
+def require_role(*allowed_roles: RoleEnum) -> Callable[[CachedUser], CachedUser]:
+    def _check_role(current_user: CachedUser = Depends(get_current_user)) -> CachedUser:
         if current_user.role not in allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

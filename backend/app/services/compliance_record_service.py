@@ -32,8 +32,25 @@ recomputing"). The real function is
 returning {application_id, technical_score, commercial_score, final_score}.
 Note it takes `db` as well as `application_id` — imported directly below,
 no more try/except fallback needed.
+
+JSON-SAFETY NOTE (fix applied this revision):
+The compiled snapshot mixes plain values with `datetime`/`date` objects
+(reviewed_at, computed_at, started_at, verified_at, decided_at, etc.) and
+SQLAlchemy `Enum` members (application.status, overall_result,
+technical_risk, verdict, milestone_type, payment_status, source_tag, ...).
+`ComplianceRecord.snapshot` is a JSON column, and SQLAlchemy's JSON type
+serializes with plain `json.dumps`, which cannot encode either type —
+every generation call was raising `TypeError: Object of type datetime is
+not JSON serializable` (and would hit the same wall on enums right after).
+`_json_safe()` below recursively normalizes the whole snapshot dict
+(datetimes/dates -> ISO strings, enums -> their `.value`) immediately
+before it's handed to the `ComplianceRecord` constructor. No individual
+`_compile_*` helper needed to change — the sweep happens once, at the
+single point where the dict is about to be persisted.
 """
 
+from datetime import datetime, date
+from enum import Enum
 from typing import Optional
 
 from fastapi import HTTPException, status as http_status
@@ -60,6 +77,31 @@ from app.services.qcbs_service import (
     get_qcbs_score,
     QCBSServiceError,
 )
+
+
+def _json_safe(value):
+    """
+    Recursively convert a value into something the JSON column's
+    json.dumps-based serializer can actually encode:
+      - dict   -> dict with each value recursively converted
+      - list/tuple -> list with each item recursively converted
+      - datetime/date -> ISO 8601 string
+      - Enum (incl. SQLAlchemy Enum columns, which come back as plain
+        Python Enum members) -> its .value
+      - everything else -> returned unchanged
+
+    Applied once, at the point the snapshot is about to be persisted,
+    rather than in every _compile_* helper individually.
+    """
+    if isinstance(value, dict):
+        return {k: _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(v) for v in value]
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    if isinstance(value, Enum):
+        return value.value
+    return value
 
 
 def _get_application_or_404(db: Session, application_id: int) -> Application:
@@ -290,7 +332,7 @@ def generate_compliance_record(
         problem_statement_id=ps.id,
         application_id=application_id,
         generated_by=generated_by,
-        snapshot=snapshot,
+        snapshot=_json_safe(snapshot),
     )
     db.add(record)
     db.commit()

@@ -266,7 +266,7 @@ const ScoringForm: React.FC<{ appId: number; declared: boolean; recused: boolean
     () =>
       rows.reduce((sum, c) => {
         const raw = Number(entries[c.id]?.score ?? '');
-        return sum + (Number.isFinite(raw) ? raw * c.weight : 0);
+        return sum + (Number.isFinite(raw) ? (raw * c.weight) / 100 : 0);
       }, 0),
     [rows, entries],
   );
@@ -407,7 +407,7 @@ const ScoringForm: React.FC<{ appId: number; declared: boolean; recused: boolean
                       {c.category ? ` · ${humanize(c.category)}` : ' · all categories'}
                       {entries[c.id]?.score !== '' && entries[c.id]?.score !== undefined
                         ? ` · contributes ${(
-                            Number(entries[c.id].score) * c.weight
+                            (Number(entries[c.id].score) * c.weight) / 100
                           ).toFixed(2)}`
                         : ''}
                     </div>
@@ -418,11 +418,11 @@ const ScoringForm: React.FC<{ appId: number; declared: boolean; recused: boolean
                       type="number"
                       step="0.1"
                       min={0}
-                      max={10}
+                      max={100}
                       required
                       disabled={locked}
                       aria-label={`Score for ${c.name}`}
-                      placeholder="0–10"
+                      placeholder="0–100"
                       value={entries[c.id]?.score ?? ''}
                       onChange={(ev) =>
                         setEntries((s) => ({
@@ -441,8 +441,8 @@ const ScoringForm: React.FC<{ appId: number; declared: boolean; recused: boolean
                 <input
                   type="range"
                   min={0}
-                  max={10}
-                  step={0.1}
+                  max={100}
+                  step={1}
                   disabled={locked}
                   aria-label={`Score slider for ${c.name}`}
                   value={entries[c.id]?.score === '' || entries[c.id]?.score === undefined
@@ -461,8 +461,8 @@ const ScoringForm: React.FC<{ appId: number; declared: boolean; recused: boolean
                 />
                 <div className="flex justify-between text-[9px] font-bold text-gray-400 -mt-1">
                   <span>0</span>
-                  <span>5</span>
-                  <span>10</span>
+                  <span>50</span>
+                  <span>100</span>
                 </div>
 
                 <DocTextarea
