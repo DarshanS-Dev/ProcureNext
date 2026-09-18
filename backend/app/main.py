@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from app.routers import uploads
 
 from app.routers import (
     applications,
@@ -20,6 +21,7 @@ from app.routers import (
     scoring,
     startup_profiles,
     bulk,
+    uploads,
 )
 
 app = FastAPI(title="SIH26136 — Startup Procurement Platform")
@@ -52,3 +54,6 @@ app.include_router(compliance_record.router)
 app.include_router(invite.router)
 
 app.include_router(bulk.router)
+
+
+app.include_router(uploads.router)
