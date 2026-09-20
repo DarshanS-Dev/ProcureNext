@@ -43,6 +43,25 @@ def get_milestones(db: Session, contract_id: int) -> List[PilotMilestone]:
     )
 
 
+def get_evidence(db: Session, contract_id: int, milestone_id: int) -> List[Evidence]:
+    """Evidence for one milestone, after proving it belongs to the contract."""
+    milestone = db.query(PilotMilestone).filter(
+        PilotMilestone.id == milestone_id,
+        PilotMilestone.contract_id == contract_id,
+    ).first()
+    if milestone is None:
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="Milestone not found",
+        )
+    return (
+        db.query(Evidence)
+        .filter(Evidence.milestone_id == milestone_id)
+        .order_by(Evidence.submitted_at.desc())
+        .all()
+    )
+
+
 # ---- PATCH /contracts/{id}/milestones/{milestone_id} ----
 # Officer sets due_date, target_value, target_unit, display_name.
 # milestone_type, count, and order are NEVER touched here (Doc C #1, #3).

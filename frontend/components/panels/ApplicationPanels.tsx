@@ -11,7 +11,7 @@
  * server re-checks permission regardless.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   AlertStrip,
   DataCard,
@@ -30,7 +30,7 @@ import {
   fmtDateTime,
   humanize,
 } from '@/components/shared/States';
-import { api, orNull } from '@/lib/api/client';
+import { ApiError, api, orNull } from '@/lib/api/client';
 import { useMutation, useQuery } from '@/lib/hooks/useApi';
 import {
   COIDeclarationRead,
@@ -1442,11 +1442,13 @@ export const MilestonesPanel: React.FC<{
 }> = ({ contractId, canPlan = false, canSubmitEvidence = false, canReview = false }) => {
   const query = useQuery(() => api.getMilestones(contractId), [contractId]);
   const action = useMutation();
+  const evidenceAction = useMutation();
+  const fileInputs = useRef<Record<number, HTMLInputElement | null>>({});
 
   const [plans, setPlans] = useState<
     Record<number, { due_date: string; target_value: string; target_unit: string; display_name: string }>
   >({});
-  const [evidence, setEvidence] = useState<Record<number, string>>({});
+  const [evidenceFiles, setEvidenceFiles] = useState<Record<number, File | undefined>>({});
   const [reviews, setReviews] = useState<
     Record<number, { status: MilestoneStatusEnum; payment_status: PaymentStatusEnum }>
   >({});
@@ -1507,6 +1509,7 @@ export const MilestonesPanel: React.FC<{
       )}
 
       <MutationFeedback state={action} />
+      <MutationFeedback state={evidenceAction} />
 
       {/* Fixed MilestoneTypeEnum order; each node carries its real status and
           payment status. */}
@@ -1606,40 +1609,82 @@ export const MilestonesPanel: React.FC<{
               </div>
             )}
 
+            <EvidenceRows contractId={contractId} milestoneId={m.id} />
+
             {canSubmitEvidence && (
               <div className="flex gap-2 items-end">
                 <div className="flex-1">
-                  <DocInput
-                    lineStyle={false}
-                    aria-label={`Evidence reference for milestone ${m.id}`}
-                    placeholder="Evidence URL or storage reference"
-                    value={evidence[m.id] ?? ''}
-                    onChange={(e) => setEvidence((s) => ({ ...s, [m.id]: e.target.value }))}
+                  <label
+                    className="block text-[10px] font-bold uppercase tracking-wider text-[#6B7280] mb-1"
+                    htmlFor={`evidence-file-${m.id}`}
+                  >
+                    Evidence file
+                  </label>
+                  <input
+                    ref={(node) => {
+                      fileInputs.current[m.id] = node;
+                    }}
+                    id={`evidence-file-${m.id}`}
+                    className="block w-full text-xs text-[#18181B] file:mr-3 file:rounded-full file:border-0 file:bg-[#F0F0EA] file:px-3 file:py-2 file:text-[11px] file:font-bold file:text-[#18181B] hover:file:bg-[#D7FD44]"
+                    type="file"
+                    aria-label={`Evidence file for milestone ${m.id}`}
+                    onChange={(e) =>
+                      setEvidenceFiles((files) => ({
+                        ...files,
+                        [m.id]: e.target.files?.[0],
+                      }))
+                    }
                   />
                 </div>
                 <DocButton
                   size="sm"
                   variant="secondary"
                   role="startup"
-                  disabled={!(evidence[m.id] ?? '').trim() || action.pending}
+                  disabled={!evidenceFiles[m.id] || evidenceAction.pending}
                   icon={<Upload className="w-3 h-3" />}
                   onClick={() =>
-                    action.run(
-                      () =>
-                        api.submitEvidence(contractId, m.id, {
-                          file_reference: (evidence[m.id] ?? '').trim(),
-                        }),
+                    evidenceAction.run(
+                      async () => {
+                        const file = evidenceFiles[m.id];
+                        if (!file) throw new ApiError(0, 'Choose an evidence file first.', '/uploads');
+
+                        let storagePath: string;
+                        try {
+                          ({ storage_path: storagePath } = await api.uploadFile(file));
+                        } catch (err) {
+                          const detail = err instanceof ApiError ? err.detail : String(err);
+                          throw new ApiError(
+                            err instanceof ApiError ? err.status : 0,
+                            `Upload failed: ${detail}`,
+                            '/uploads',
+                          );
+                        }
+
+                        try {
+                          return await api.submitEvidence(contractId, m.id, {
+                            file_reference: storagePath,
+                          });
+                        } catch (err) {
+                          const detail = err instanceof ApiError ? err.detail : String(err);
+                          throw new ApiError(
+                            err instanceof ApiError ? err.status : 0,
+                            `File uploaded, but linking it to the milestone failed: ${detail}`,
+                            `/contracts/${contractId}/milestones/${m.id}/evidence`,
+                          );
+                        }
+                      },
                       {
                         successMessage: 'Evidence submitted.',
                         onSuccess: () => {
-                          setEvidence((s) => ({ ...s, [m.id]: '' }));
+                          setEvidenceFiles((files) => ({ ...files, [m.id]: undefined }));
+                          if (fileInputs.current[m.id]) fileInputs.current[m.id]!.value = '';
                           query.refetch();
                         },
                       },
                     )
                   }
                 >
-                  Submit evidence
+                  Upload
                 </DocButton>
               </div>
             )}
@@ -1715,6 +1760,54 @@ export const MilestonesPanel: React.FC<{
         ))}
       </div>
     </DataCard>
+  );
+};
+
+/** Evidence URLs are fetched only when the user opens a specific row. */
+const EvidenceRows: React.FC<{ contractId: number; milestoneId: number }> = ({
+  contractId,
+  milestoneId,
+}) => {
+  const query = useQuery(
+    () => api.getMilestoneEvidence(contractId, milestoneId),
+    [contractId, milestoneId],
+  );
+  const openFile = useMutation();
+
+  if (query.loading || query.error || (query.data?.length ?? 0) === 0) return null;
+
+  return (
+    <div className="rounded-xl bg-[#F8F8F4] px-3 py-2 space-y-1.5">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">Evidence</p>
+      {query.data!.map((evidence) => (
+        <div key={evidence.id} className="flex items-center justify-between gap-3 text-[11px]">
+          <span className="text-[#6B7280]">
+            {humanize(evidence.source_tag)} · {fmtDateTime(evidence.submitted_at)}
+          </span>
+          <DocButton
+            size="sm"
+            variant="secondary"
+            disabled={openFile.pending}
+            onClick={() =>
+              openFile.run(
+                async () => {
+                  // A missing attachment is expected for legacy evidence rows.
+                  const signed = await orNull(api.getEvidenceSignedUrl(evidence.id));
+                  if (!signed) {
+                    throw new ApiError(404, 'No file is attached to this evidence.', `/uploads/evidence/${evidence.id}/signed-url`);
+                  }
+                  window.open(signed.signed_url, '_blank', 'noopener,noreferrer');
+                },
+                { successMessage: 'File opened in a new tab.' },
+              )
+            }
+          >
+            View file
+          </DocButton>
+        </div>
+      ))}
+      <MutationFeedback state={openFile} />
+    </div>
   );
 };
 

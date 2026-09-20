@@ -162,6 +162,29 @@ interface RequestOptions {
   anonymous?: boolean;
 }
 
+/** Headers common to JSON and multipart requests. */
+function authHeaders(anonymous = false): Record<string, string> {
+  if (anonymous) return {};
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function readResponse<T>(res: Response, path: string, anonymous = false): Promise<T> {
+  if (res.status === 401 && !anonymous) {
+    // Keep multipart uploads consistent with normal API requests.
+    clearToken();
+  }
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new ApiError(res.status, extractDetail(text, res.status), path);
+  }
+  if (res.status === 204) return undefined as T;
+
+  const text = await res.text();
+  return text ? (JSON.parse(text) as T) : (undefined as T);
+}
+
 // ── Client-side GET cache ─────────────────────────────────────
 //
 // Pages used to refetch everything on every mount: the problem-statement list
@@ -238,13 +261,8 @@ async function send<T>(path: string, options: RequestOptions = {}): Promise<T> {
     if (qs) url += `?${qs}`;
   }
 
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = authHeaders(anonymous);
   if (body !== undefined) headers['Content-Type'] = 'application/json';
-
-  if (!anonymous) {
-    const token = getToken();
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-  }
 
   let res: Response;
   try {
@@ -262,22 +280,37 @@ async function send<T>(path: string, options: RequestOptions = {}): Promise<T> {
     );
   }
 
-  if (res.status === 401 && !anonymous) {
-    // Token missing, expired or invalid — drop it so the app stops pretending
-    // to be signed in, and let the route guard bounce the user to /login.
-    clearToken();
+  return readResponse<T>(res, path, anonymous);
+}
+
+/** POST /uploads using browser-managed multipart boundaries. */
+async function uploadMultipart(file: File): Promise<{ storage_path: string }> {
+  const path = '/uploads';
+  const formData = new FormData();
+  formData.append('file', file);
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: formData,
+      cache: 'no-store',
+    });
+  } catch {
+    throw new ApiError(
+      0,
+      'Could not reach the API. Start the FastAPI server (uvicorn app.main:app --reload) and reload this page.',
+      path,
+    );
   }
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new ApiError(res.status, extractDetail(text, res.status), path);
+  try {
+    return await readResponse<{ storage_path: string }>(res, path);
+  } finally {
+    // An upload is a write even though it bypasses request().
+    invalidateApiCache();
   }
-
-  if (res.status === 204) return undefined as T;
-
-  const text = await res.text();
-  if (!text) return undefined as T;
-  return JSON.parse(text) as T;
 }
 
 /**
@@ -294,6 +327,16 @@ export async function orNull<T>(p: Promise<T>): Promise<T | null> {
 }
 
 export const api = {
+  // ── Uploads ───────────────────────────────────────────────
+  /** POST /uploads — multipart, deliberately bypasses the JSON request helper. */
+  uploadFile: (file: File) => uploadMultipart(file),
+
+  /** GET /uploads/evidence/{evidence_id}/signed-url */
+  getEvidenceSignedUrl: (evidenceId: number) =>
+    request<{ evidence_id: number; signed_url: string }>(
+      `/uploads/evidence/${evidenceId}/signed-url`,
+    ),
+
   // ── Health ────────────────────────────────────────────────
   /** GET /health */
   health: () => request<{ status: string }>('/health', { anonymous: true }),
@@ -523,6 +566,14 @@ export const api = {
   getMyEvaluatorAssignments: () =>
     request<ApplicationRead[]>('/evaluators/me/applications'),
 
+  // ── Independent evaluator dashboard ───────────────────────
+  /** GET /independent-evaluators/me/applications */
+  getMyIndependentEvaluatorApplications: () =>
+    request<{
+      needing_sandbox: ApplicationRead[];
+      needing_milestones_or_kpis: ApplicationRead[];
+    }>('/independent-evaluators/me/applications'),
+
   // ── Technical scoring ─────────────────────────────────────
   /** GET /rubric-criteria — the seeded platform-wide criteria. */
   getRubricCriteria: () => request<RubricCriterionRead[]>('/rubric-criteria'),
@@ -614,6 +665,10 @@ export const api = {
   /** GET /contracts/{id}/milestones */
   getMilestones: (contractId: number) =>
     request<PilotMilestoneRead[]>(`/contracts/${contractId}/milestones`),
+
+  /** GET /contracts/{id}/milestones/{milestone_id}/evidence */
+  getMilestoneEvidence: (contractId: number, milestoneId: number) =>
+    request<EvidenceRead[]>(`/contracts/${contractId}/milestones/${milestoneId}/evidence`),
 
   /** PATCH /contracts/{id}/milestones/{milestone_id} — officer sets targets. */
   updateMilestone: (
@@ -723,4 +778,3 @@ export const api = {
 };
 
 export type { AuditLogRead };
-

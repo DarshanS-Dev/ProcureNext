@@ -9,6 +9,7 @@
  */
 
 import React from 'react';
+import Link from 'next/link';
 import { AppLayout } from '@/components/shared/AppLayout';
 import { QuickLink } from '@/components/shared/Dashboard';
 import {
@@ -21,6 +22,10 @@ import {
   Stepper,
 } from '@/components/shared/design-system';
 import { CheckCircle2, ClipboardCheck, FlaskConical, Gauge, Microscope, Search, Sliders } from 'lucide-react';
+import { ApiErrorState, LoadingBlock } from '@/components/shared/States';
+import { api } from '@/lib/api/client';
+import { useQuery } from '@/lib/hooks/useApi';
+import type { ApplicationRead } from '@/lib/types/api';
 
 const STAGES = [
   {
@@ -44,6 +49,8 @@ const STAGES = [
 ];
 
 export default function IndependentEvaluatorDashboardPage() {
+  const applications = useQuery(() => api.getMyIndependentEvaluatorApplications(), []);
+
   return (
     <AppLayout allow="independent_evaluator">
       <div className="space-y-6 pb-12">
@@ -68,6 +75,25 @@ export default function IndependentEvaluatorDashboardPage() {
             ]}
           />
         </Card>
+
+        {applications.loading && <LoadingBlock label="Loading your verification work…" />}
+        {applications.error && (
+          <ApiErrorState error={applications.error} onRetry={applications.refetch} />
+        )}
+        {applications.data && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <ApplicationWorkSection
+              title="Needs Sandbox"
+              hint="Selected applications waiting for a sandbox verdict."
+              applications={applications.data.needing_sandbox}
+            />
+            <ApplicationWorkSection
+              title="Needs Milestone/KPI Review"
+              hint="Contracted applications with pilot evidence or KPI work outstanding."
+              applications={applications.data.needing_milestones_or_kpis}
+            />
+          </div>
+        )}
 
         {/* Addition 2 — what each stage asks of you, one card each. */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -105,11 +131,40 @@ export default function IndependentEvaluatorDashboardPage() {
         </div>
 
         <ScopeNote>
-          There is no route that lists the applications or contracts assigned to an
-          independent evaluator, so this page shows no caseload count rather than a
-          made-up one.
+          Open an application to record its sandbox result, review milestone evidence,
+          and enter KPI verdicts.
         </ScopeNote>
       </div>
     </AppLayout>
   );
 }
+
+const ApplicationWorkSection: React.FC<{
+  title: string;
+  hint: string;
+  applications: ApplicationRead[];
+}> = ({ title, hint, applications }) => (
+  <Card label={title} aside={<StatPill>{applications.length}</StatPill>}>
+    <p className="text-xs text-gray-500 mb-3">{hint}</p>
+    {applications.length === 0 ? (
+      <p className="text-xs text-gray-500">Nothing waiting in this queue.</p>
+    ) : (
+      <div className="space-y-2">
+        {applications.map((application) => (
+          <Link
+            key={application.id}
+            href={`/independent-evaluator/applications/${application.id}`}
+            className="block rounded-xl border border-[#E5E5E0] bg-[#F8F8F4] px-3 py-2.5 hover:border-[#18181B] transition-colors"
+          >
+            <p className="text-xs font-bold text-[#18181B]">
+              {(application.technical_proposal?.title as string | undefined) ?? `Application #${application.id}`}
+            </p>
+            <p className="text-[10px] text-[#6B7280] mt-0.5">
+              Application #{application.id} · Startup #{application.startup_id}
+            </p>
+          </Link>
+        ))}
+      </div>
+    )}
+  </Card>
+);

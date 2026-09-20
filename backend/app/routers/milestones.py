@@ -37,6 +37,21 @@ def get_milestones(
     return milestone_service.get_milestones(db=db, contract_id=contract_id)
 
 
+@router.get(
+    "/contracts/{contract_id}/milestones/{milestone_id}/evidence",
+    response_model=List[EvidenceRead],
+)
+def get_evidence(
+    contract_id: int,
+    milestone_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(require_role(RoleEnum.officer, RoleEnum.independent_evaluator, RoleEnum.admin, RoleEnum.startup)),
+):
+    return milestone_service.get_evidence(
+        db=db, contract_id=contract_id, milestone_id=milestone_id,
+    )
+
+
 @router.patch("/contracts/{contract_id}/milestones/{milestone_id}", response_model=PilotMilestoneRead)
 def update_milestone(
     contract_id: int,
